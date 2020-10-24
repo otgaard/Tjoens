@@ -1,4 +1,4 @@
 Tjoens
 ======
 
-An experiment and demo in interactive visualisation combining Typescript, WebGL, Web Audio, and React/Material.ui.
+A demo and experiment in interactive visualisation combining Typescript, WebGL, Web Audio, and React/Material.ui.
