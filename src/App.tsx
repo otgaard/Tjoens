@@ -14,6 +14,7 @@ import {Provider} from "react-redux";
 import {appReducer} from "./reducer";
 import Player from "./Player";
 
+// Halloween Theme?
 const defaultTheme = createMuiTheme({
     palette: {
         primary: {

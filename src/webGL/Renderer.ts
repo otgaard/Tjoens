@@ -80,6 +80,7 @@ const frgShdr = `
     
     varying vec2 texcoord;
     
+    // This is required to lookup values dynamically
     float getBin(int val) {
         for(int i = 0; i != 16; ++i) {
             if(i == val) return bins[i];
@@ -89,11 +90,12 @@ const frgShdr = `
     }
     
     void main() {
-        float val = getBin(int(floor(texcoord.x*16.)));
+        float val = getBin(int(texcoord.x*16.));
     
-        gl_FragColor = vec4((texcoord.y < val ? 1. : 0.) * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y), 1.);
+        gl_FragColor = vec4(step(texcoord.y, val) * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y), 1.);
     }
 `;
+
 
 export default class Renderer {
     private el: HTMLCanvasElement;

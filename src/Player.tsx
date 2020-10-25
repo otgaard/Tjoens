@@ -3,7 +3,7 @@ import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
 import Canvas from "./Canvas";
 import React, {useEffect, useState} from "react";
-import Audio from "./webAudio/Audio";
+import Audio, {isSafari} from "./webAudio/Audio";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import {useSelector} from "react-redux";
 import {AppState} from "./reducer";
@@ -28,6 +28,10 @@ export default function Player() {
     const [playState, setPlayState] = useState(PlayState.PS_STOPPED);
 
     const stoppedEv = () => setPlayState(PlayState.PS_STOPPED);
+
+    useEffect(() => {
+        if(isSafari) setPlayState(PlayState.PS_PLAYING);
+    }, [audioElement]);
 
     useEffect(() => {
         if(audioElement) {

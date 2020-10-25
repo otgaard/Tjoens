@@ -5,6 +5,9 @@ import {AppState, setAudioContext, setAudioFile} from "../reducer";
 // @ts-ignore
 window.AudioContext = (window.AudioContext || window.webkitAudioContext);
 
+// @ts-ignore
+export const isSafari = window.safari !== undefined;
+
 export interface AudioProps {
     file: File | null;
 }
@@ -34,6 +37,10 @@ export default function Audio(props: AudioProps) {
                         const source = ctx.createMediaElementSource(audioRef);
                         source.connect(analyser);
                         analyser.connect(ctx.destination);
+
+                        // Note: Due to a bug with Safari and async loads
+                        if(isSafari) audioRef.play();
+
                         dispatch(setAudioContext(ctx, audioRef, source, analyser, props.file));
                     } else {
                         if(wasPlaying) audioRef.play();
