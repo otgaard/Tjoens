@@ -3,10 +3,10 @@ import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
 import Canvas from "./Canvas";
 import React, {useEffect, useState} from "react";
-import Audio, {isSafari} from "./webAudio/Audio";
+import Audio from "./webAudio/Audio";
 import makeStyles from "@material-ui/core/styles/makeStyles";
-import {useSelector} from "react-redux";
-import {AppState} from "./reducer";
+import {useDispatch, useSelector} from "react-redux";
+import {AppState, setAudioContext} from "./reducer";
 
 const useStyles = makeStyles((theme) => ({
     layout: {
@@ -26,11 +26,21 @@ export default function Player() {
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const audioElement = useSelector((state: AppState) => state.audioElement);
     const [playState, setPlayState] = useState(PlayState.PS_STOPPED);
+    const dispatch = useDispatch();
 
     const stoppedEv = () => setPlayState(PlayState.PS_STOPPED);
 
     useEffect(() => {
-        if(isSafari) setPlayState(PlayState.PS_PLAYING);
+        if(!audioElement) return;
+
+        console.log("Creating Audio Context");
+        const ctx = new window.AudioContext();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        const source = ctx.createMediaElementSource(audioElement);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+        dispatch(setAudioContext(ctx, audioElement, source, analyser, null));
     }, [audioElement]);
 
     useEffect(() => {
@@ -44,7 +54,7 @@ export default function Player() {
                 audioElement.removeEventListener("ended", stoppedEv);
             }
         }
-    }, [playState]);
+    }, [playState, audioElement, audioFile]);
 
     return (
         <React.Fragment>

@@ -66,3 +66,12 @@ export function setAudioFile(file: File | null): AppAction {
         }
     };
 }
+
+export function setAudioElement(el: HTMLAudioElement | null): AppAction {
+    return {
+        type: APP_ACTION,
+        data: {
+            audioElement: el,
+        }
+    };
+}
