@@ -76,23 +76,41 @@ const vtxShdr = `
 const frgShdr = `
     precision highp float;
     
-    uniform float bins[16];
+    #extension GL_OES_standard_derivatives : enable
+    
+    #define BIN_SIZE 128
+    #define INV_BIN 1./128.
+    
+    uniform float bins[BIN_SIZE];
+    uniform float maxSample[BIN_SIZE];
     
     varying vec2 texcoord;
     
     // This is required to lookup values dynamically
     float getBin(int val) {
-        for(int i = 0; i != 16; ++i) {
+        for(int i = 0; i != BIN_SIZE; ++i) {
             if(i == val) return bins[i];
         }
         
         return 0.;
     }
-    
+
+    float getMaxSample(int val) {
+        for(int i = 0; i != BIN_SIZE; ++i) {
+            if(i == val) return maxSample[i];
+        }
+        
+        return 0.;
+    }
+
     void main() {
-        float val = getBin(int(texcoord.x*16.));
+        int bin = int(texcoord.x*float(BIN_SIZE));
+        float val = getBin(bin);
+        float maxSample = getMaxSample(bin);
     
-        gl_FragColor = vec4(step(texcoord.y, val) * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y), 1.);
+        gl_FragColor = vec4(step(texcoord.y, val) * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
+        gl_FragColor = mix(gl_FragColor, step(texcoord.y, val) * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
+        gl_FragColor = mix(gl_FragColor, vec4(0., .4, 1., 1.),  step(abs(texcoord.y - maxSample), fwidth(texcoord.y))); 
     }
 `;
 
@@ -112,15 +130,22 @@ export default class Renderer {
     private lastMouseButton = -1;
 
     private analyser: AnalyserNode | null;
-    // This is far too big, so we break it into 16 bins
     private fftBuffer = new Uint8Array(0);
     private seqLength = 0;
-    private bins = new Float32Array(16);
+    readonly fftSize = 256;
+    readonly binSize = Math.floor(this.fftSize/2);
+    private bins = new Float32Array(this.binSize);
+
+    private sampleIdx = 0; // Current index into sample history
+    readonly sampleCount = 30;
+    private samples = new Float32Array(this.binSize*this.sampleCount); // Cyclic buffer
+    private maxSamples = new Float32Array(this.binSize);
 
     private prog: Program | null = null;
     private vbuf: WebGLBuffer | null = null;
     private loc0: number = -1;
     private binsLoc: WebGLUniformLocation | null = null;
+    private maxSamplesLoc: WebGLUniformLocation | null = null;
 
     public constructor(el: HTMLCanvasElement) {
         this.el = el;
@@ -148,6 +173,8 @@ export default class Renderer {
     public initialise(): boolean {
         const gl = this.gl;
 
+        gl.getExtension("OES_standard_derivatives");
+
         this.el.addEventListener("mousemove", this.onMouseMove);
         this.el.addEventListener("mousedown", this.onMouseDown);
         this.el.addEventListener("mouseup", this.onMouseUp);
@@ -173,6 +200,8 @@ export default class Renderer {
 
         this.binsLoc = gl.getUniformLocation(this.prog, "bins[0]");
         if(this.binsLoc === -1) return false;
+        this.maxSamplesLoc = gl.getUniformLocation(this.prog, "maxSample[0]");
+        if(this.maxSamplesLoc === -1) return false;
 
         gl.useProgram(null);
 
@@ -210,14 +239,30 @@ export default class Renderer {
         this.analyser.getByteFrequencyData(this.fftBuffer);
         this.bins.fill(0);
         const invScale = 1./(this.seqLength*255);
+
+        const findMax = (bin: number, off: number): number => {
+            const start = this.sampleCount*bin, end = this.sampleCount*(bin+1);
+            let max = this.samples[start + off];
+            for(let i = start; i !== end; ++i) {
+                const s = this.samples[start + (i + off) % this.sampleCount];
+                if(s > max) max = s;
+            }
+            return max;
+        }
+
         for(let i = 0; i !== this.bins.length; ++i) {
             for(let j = 0; j !== this.seqLength; ++j) {
                 this.bins[i] += this.fftBuffer[i*this.seqLength + j];
             }
             this.bins[i] *= invScale;
+            this.samples[this.sampleCount*i + this.sampleIdx] = this.bins[i];
+            this.sampleIdx = (this.sampleIdx+1) % this.sampleCount;
+            this.maxSamples[i] = findMax(i, this.sampleIdx);
         }
+
         this.gl.useProgram(this.prog);
         this.gl.uniform1fv(this.binsLoc, this.bins);
+        this.gl.uniform1fv(this.maxSamplesLoc, this.maxSamples);
 
     }
 

@@ -7,6 +7,7 @@ import Audio from "./webAudio/Audio";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import {useDispatch, useSelector} from "react-redux";
 import {AppState, setAudioContext} from "./reducer";
+import {Link} from "@material-ui/core";
 
 const useStyles = makeStyles((theme) => ({
     layout: {
@@ -42,7 +43,7 @@ export default function Player() {
         console.log("Creating Audio Context");
         const ctx = new window.AudioContext();
         const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
+        analyser.fftSize = 512;
         const source = ctx.createMediaElementSource(audioElement);
         source.connect(analyser);
         analyser.connect(ctx.destination);
@@ -90,10 +91,12 @@ export default function Player() {
                             {playState === PlayState.PS_PLAYING ? "Pause" : "Play"}
                         </Button>
                     </Grid>
-                    <Grid item key={1} xs={12} sm={6} md={4}>
-                        <a href="https://support.shadowhealth.com/hc/en-us/articles/360009548313-Audio-issues-in-Safari">
+                    <Grid item key={2} xs={12} sm={6} md={4}>
+                        <Link
+                            href="https://support.shadowhealth.com/hc/en-us/articles/360009548313-Audio-issues-in-Safari"
+                        >
                             Not working in Safari?
-                        </a>
+                        </Link>
                     </Grid>
                     {/*
                     <Grid item key={2} xs={12} sm={6} md={3}>
@@ -103,7 +106,7 @@ export default function Player() {
                         <Button color="secondary" variant="contained">Randomise</Button>
                     </Grid>
                     */}
-                    <Grid item key={4} xs={12} sm={12} md={12} style={{height: "500px"}}>
+                    <Grid item key={3} xs={12} sm={12} md={12} style={{height: "500px"}}>
                         <Canvas />
                     </Grid>
                 </Grid>
