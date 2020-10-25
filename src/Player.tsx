@@ -8,6 +8,8 @@ import makeStyles from "@material-ui/core/styles/makeStyles";
 import {useDispatch, useSelector} from "react-redux";
 import {AppState, setAudioContext} from "./reducer";
 import {Link} from "@material-ui/core";
+import Typography from "@material-ui/core/Typography";
+import Slider from "@material-ui/core/Slider";
 
 const useStyles = makeStyles((theme) => ({
     layout: {
@@ -31,11 +33,17 @@ enum PlayState {
 export default function Player() {
     const classes = useStyles();
     const [audioFile, setAudioFile] = useState<File | null>(null);
+    const [gain, setGain] = useState(.5);
     const audioElement = useSelector((state: AppState) => state.audioElement);
     const [playState, setPlayState] = useState(PlayState.PS_STOPPED);
     const dispatch = useDispatch();
 
     const stoppedEv = () => setPlayState(PlayState.PS_STOPPED);
+
+    const handleChange = (event: any, newValue: any) => {
+        console.log(newValue);
+        setGain(newValue);
+    };
 
     useEffect(() => {
         if(!audioElement) return;
@@ -77,7 +85,7 @@ export default function Player() {
                             }}
                         />
                     </Grid>
-                    <Grid item key={1} xs={12} sm={6} md={4}>
+                    <Grid item key={1} xs={12} sm={2} md={2}>
                         <Button
                             color="secondary"
                             variant="contained"
@@ -92,22 +100,34 @@ export default function Player() {
                         </Button>
                     </Grid>
                     <Grid item key={2} xs={12} sm={6} md={4}>
+                        <Grid container spacing={2}>
+                            <Typography id="continuous-slider" gutterBottom>
+                                Gain
+                            </Typography>
+                            <Grid item xs>
+
+
+                                <Slider value={gain}
+                                        defaultValue={0.5}
+                                        step={.05}
+                                        marks
+                                        min={.05}
+                                        max={.95}
+                                        valueLabelDisplay="auto"
+                                        onChange={handleChange}
+                                        aria-labelledby="continuous-slider" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                    <Grid item key={3} xs={12} sm={2} md={2}>
                         <Link
                             href="https://support.shadowhealth.com/hc/en-us/articles/360009548313-Audio-issues-in-Safari"
                         >
-                            Not working in Safari?
+                            Safari Problems
                         </Link>
                     </Grid>
-                    {/*
-                    <Grid item key={2} xs={12} sm={6} md={3}>
-                        <Button color="secondary" variant="contained">Stop</Button>
-                    </Grid>
-                    <Grid item key={3} xs={12} sm={6} md={3}>
-                        <Button color="secondary" variant="contained">Randomise</Button>
-                    </Grid>
-                    */}
-                    <Grid item key={3} xs={12} sm={12} md={12} style={{height: "500px"}}>
-                        <Canvas />
+                    <Grid item key={4} xs={12} sm={12} md={12} style={{height: "500px"}}>
+                        <Canvas gain={gain}/>
                     </Grid>
                 </Grid>
             </Container>

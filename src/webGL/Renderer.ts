@@ -1,4 +1,4 @@
-import {clamp} from "../maths/functions";
+import {clamp, gain} from "../maths/functions";
 import requestAnimFrame from "./requestAnimFrame";
 
 enum Viewport {
@@ -78,8 +78,8 @@ const frgShdr = `
     
     #extension GL_OES_standard_derivatives : enable
     
-    #define BIN_SIZE 128
-    #define INV_BIN 1./128.
+    #define BIN_SIZE 90
+    #define INV_BIN 1./90.
     
     uniform float bins[BIN_SIZE];
     uniform float maxSample[BIN_SIZE];
@@ -114,7 +114,6 @@ const frgShdr = `
     }
 `;
 
-
 export default class Renderer {
     private el: HTMLCanvasElement;
     private gl: WebGLRenderingContext;
@@ -133,7 +132,7 @@ export default class Renderer {
     private fftBuffer = new Uint8Array(0);
     private seqLength = 0;
     readonly fftSize = 256;
-    readonly binSize = Math.floor(this.fftSize/2);
+    readonly binSize = 128;
     private bins = new Float32Array(this.binSize);
 
     private sampleIdx = 0; // Current index into sample history
@@ -226,6 +225,11 @@ export default class Renderer {
         return true;
     }
 
+    private gain = .5;
+    public setGain(gain: number): void {
+        this.gain = clamp(gain, .05, .95);
+    }
+
     private val = 0;
     private dir = 1;
 
@@ -248,13 +252,13 @@ export default class Renderer {
                 if(s > max) max = s;
             }
             return max;
-        }
+        };
 
         for(let i = 0; i !== this.bins.length; ++i) {
             for(let j = 0; j !== this.seqLength; ++j) {
                 this.bins[i] += this.fftBuffer[i*this.seqLength + j];
             }
-            this.bins[i] *= invScale;
+            this.bins[i] = gain(invScale*this.bins[i], this.gain);
             this.samples[this.sampleCount*i + this.sampleIdx] = this.bins[i];
             this.sampleIdx = (this.sampleIdx+1) % this.sampleCount;
             this.maxSamples[i] = findMax(i, this.sampleIdx);
@@ -311,7 +315,7 @@ export default class Renderer {
         this.viewport[3] = this.el.height;
         this.gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
 
-        console.log("Canvas Dims:", this.el.offsetWidth, this.el.offsetHeight)
+        console.log("Canvas Dims:", this.el.offsetWidth, this.el.offsetHeight);
         console.log("Viewport:", this.el.width, this.el.height);
         console.log("DPR:", window.devicePixelRatio);
         console.log("viewport:", this.viewport, "devicePixelRatio:", this.DPR);
