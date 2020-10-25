@@ -34,7 +34,8 @@
     "typescript": "^3.9.7",
     "webpack": "^4.44.2",
     "webpack-cli": "^3.3.12",
-    "webpack-dev-server": "^3.11.0"
+    "webpack-dev-server": "^3.11.0",
+    "express": "^4.17.1"
   },
   "dependencies": {
     "@types/react": "^16.9.34",

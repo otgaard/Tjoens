@@ -15,6 +15,12 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
+// @ts-ignore
+window.AudioContext = (window.AudioContext || window.webkitAudioContext);
+
+// @ts-ignore
+export const isSafari = window.safari !== undefined;
+
 enum PlayState {
     PS_PLAYING,
     PS_PAUSED,
@@ -54,7 +60,7 @@ export default function Player() {
                 audioElement.removeEventListener("ended", stoppedEv);
             }
         }
-    }, [playState, audioElement, audioFile]);
+    }, [playState]);
 
     return (
         <React.Fragment>
@@ -65,7 +71,9 @@ export default function Player() {
                         <input
                             accept="audio/*"
                             type="file"
-                            onChange={e => setAudioFile(e && e.target && e.target.files && e.target.files[0])}
+                            onChange={e => {
+                                setAudioFile(e.target.files && e.target.files[0]);
+                            }}
                         />
                     </Grid>
                     <Grid item key={1} xs={12} sm={6} md={4}>
@@ -81,6 +89,11 @@ export default function Player() {
                         >
                             {playState === PlayState.PS_PLAYING ? "Pause" : "Play"}
                         </Button>
+                    </Grid>
+                    <Grid item key={1} xs={12} sm={6} md={4}>
+                        <a href="https://support.shadowhealth.com/hc/en-us/articles/360009548313-Audio-issues-in-Safari">
+                            Not working in Safari?
+                        </a>
                     </Grid>
                     {/*
                     <Grid item key={2} xs={12} sm={6} md={3}>

@@ -1,54 +1,25 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useEffect, useRef} from "react";
 import {useDispatch} from "react-redux";
-import {setAudioElement, setAudioFile} from "../reducer";
-
-// @ts-ignore
-window.AudioContext = (window.AudioContext || window.webkitAudioContext);
-
-// @ts-ignore
-export const isSafari = window.safari !== undefined;
+import {setAudioContext} from "../reducer";
 
 export interface AudioProps {
     file: File | null;
 }
 
 export default function Audio(props: AudioProps) {
-    const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
-    //const audioCtx = useSelector((state: AppState) => state.audioContext);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const dispatch = useDispatch();
-
-    const onAudioRefChanged = useCallback(ref => {
-        setAudioRef(ref);
-    },  []);
 
     useEffect(() => {
         console.log("props.file:", props.file);
         if(props.file != null && audioRef) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                if(audioRef) {
-                    dispatch(setAudioElement(audioRef));
-
-                    const wasPlaying = !audioRef.paused;
-                    audioRef.src = e && e.target && e.target.result as string || "";
-                    /*
-                    if(!audioCtx) {
-                        const ctx = new window.AudioContext();
-                        const analyser = ctx.createAnalyser();
-                        analyser.fftSize = 256;
-                        const source = ctx.createMediaElementSource(audioRef);
-                        source.connect(analyser);
-                        analyser.connect(ctx.destination);
-
-                        dispatch(setAudioContext(ctx, audioRef, source, analyser, props.file));
-                    } else {
-                        if(wasPlaying) audioRef.play();
-                        dispatch(setAudioFile(props.file));
-                    }
-                    */
-
-                    if(wasPlaying) audioRef.play();
-                    dispatch(setAudioFile(props.file));
+                if(audioRef.current) {
+                    const wasPlaying = !audioRef.current.paused;
+                    audioRef.current.src = e.target && e.target.result as string || "";
+                    if(wasPlaying) audioRef.current.play();
+                    dispatch(setAudioContext(null, audioRef.current, null, null, props.file));
                 }
             };
             reader.readAsDataURL(props.file);
@@ -57,7 +28,7 @@ export default function Audio(props: AudioProps) {
 
     return (
         <audio
-            ref={onAudioRefChanged}
+            ref={audioRef}
         />
     );
 }
