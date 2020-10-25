@@ -2,6 +2,9 @@ import React, {useCallback, useEffect, useState} from "react";
 import {useDispatch, useSelector} from "react-redux";
 import {AppState, setAudioContext, setAudioFile} from "../reducer";
 
+// @ts-ignore
+window.AudioContext = (window.AudioContext || window.webkitAudioContext);
+
 export interface AudioProps {
     file: File | null;
 }
@@ -9,18 +12,11 @@ export interface AudioProps {
 export default function Audio(props: AudioProps) {
     const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
     const audioCtx = useSelector((state: AppState) => state.audioContext);
-    //const audioSource = useSelector((state: AppState) => state.audioSource);
     const dispatch = useDispatch();
 
     const onAudioRefChanged = useCallback(ref => {
         setAudioRef(ref);
     },  []);
-
-    /*
-    useEffect(() => {
-        if(audioRef) dispatch(setAudioContext(new AudioContext(), audioRef, null, null, null));
-    }, [audioRef]);
-    */
 
     useEffect(() => {
         console.log("props.file:", props.file);
@@ -32,7 +28,7 @@ export default function Audio(props: AudioProps) {
                     audioRef.src = e && e.target && e.target.result as string || "";
 
                     if(!audioCtx) {
-                        const ctx = new AudioContext();
+                        const ctx = new window.AudioContext();
                         const analyser = ctx.createAnalyser();
                         analyser.fftSize = 256;
                         const source = ctx.createMediaElementSource(audioRef);

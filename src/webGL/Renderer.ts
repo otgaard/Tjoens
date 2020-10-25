@@ -137,7 +137,9 @@ export default class Renderer {
     public setAnalyser(analyser: AnalyserNode): void {
         this.analyser = analyser;
         this.fftBuffer = new Uint8Array(analyser.frequencyBinCount);
-        this.seqLength = Math.floor(this.analyser.frequencyBinCount/this.bins.length);
+        const count = this.analyser.frequencyBinCount/this.bins.length;
+        this.seqLength = Math.floor(count);
+        console.log("count:", count, "seqLength:", this.seqLength);
         console.log("seqLength:", this.seqLength);
     }
 
@@ -210,7 +212,7 @@ export default class Renderer {
             for(let j = 0; j !== this.seqLength; ++j) {
                 this.bins[i] += this.fftBuffer[i*this.seqLength + j];
             }
-            this.bins[i] = invScale*this.bins[i];
+            this.bins[i] *= invScale;
         }
         this.gl.useProgram(this.prog);
         this.gl.uniform1fv(this.binsLoc, this.bins);
