@@ -8,7 +8,6 @@ enum Viewport {
     HEIGHT,
 }
 
-
 class Shader extends WebGLShader {
     public static create(context: WebGLRenderingContext, type: GLenum, source: string): Shader | null {
         let shdr: Shader | null = context.createShader(type);
