@@ -3,7 +3,8 @@ Tjoens
 
 [Tjoens](https://otgaard.github.io/Tjoens/)
 
-A demo and experiment in interactive visualisation combining Typescript, WebGL, Web Audio, and React/Material.ui.
+A demo and experiment in interactive visualisation combining Typescript, WebGL, Web Audio, and React/Material.ui.  The
+build is packaged in webpack and deployed to github.io.
 
 Goals:
 

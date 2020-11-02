@@ -8,6 +8,9 @@ interface AppAction {
         audioElement?: HTMLAudioElement | null;
         analyser?: AnalyserNode | null;
         audioFile?: File | null;
+        enqueueFiles?: FileList | null;
+        nextTrack?: Boolean | null;
+        resetTrack?: Boolean | null;
     }
 }
 
@@ -17,6 +20,8 @@ export interface AppState {
     audioElement: HTMLAudioElement | null;
     analyser: AnalyserNode | null;
     audioFile: File | null;
+    playList: Array<File>;
+    currentTrack: number;
 }
 
 const initialState: AppState = {
@@ -25,12 +30,46 @@ const initialState: AppState = {
     audioElement: null,
     analyser: null,
     audioFile: null,
+    playList: new Array<File>(),
+    currentTrack: -1,
 };
+
+function concatPlaylist(plist: Array<File>, flist: FileList): Array<File> {
+    for(let i = 0; i !== flist.length; ++i) {
+        plist.push(flist[i]);
+    }
+    return plist;
+}
 
 export function appReducer(state: AppState=initialState, action: AppAction): AppState {
     if(action.type !== APP_ACTION) return state;
 
+    if(action.data.enqueueFiles) {
+        concatPlaylist(state.playList, action.data.enqueueFiles);
+        if(state.currentTrack === -1) {
+            return {
+                ...state,
+                currentTrack: 0,
+            };
+        }
+    }
+
+    if(action.data.nextTrack) {
+        return {
+            ...state,
+            currentTrack: Math.min(state.currentTrack + 1, state.playList.length),
+        };
+    }
+
+    if(action.data.resetTrack) {
+        return {
+            ...state,
+            currentTrack: 0,
+        };
+    }
+
     return {
+        ...state,
         audioContext: action.data.audioContext || state.audioContext,
         audioSource: action.data.audioSource || state.audioSource,
         audioElement: action.data.audioElement || state.audioElement,
@@ -44,7 +83,6 @@ export function setAudioContext(
     el: HTMLAudioElement | null,
     source: MediaElementAudioSourceNode | null,
     analyser: AnalyserNode | null,
-    file: File | null,
 ): AppAction {
     return {
         type: APP_ACTION,
@@ -53,7 +91,6 @@ export function setAudioContext(
             audioElement: el,
             audioSource: source,
             analyser: analyser,
-            audioFile: file,
         }
     };
 }
@@ -72,6 +109,33 @@ export function setAudioElement(el: HTMLAudioElement | null): AppAction {
         type: APP_ACTION,
         data: {
             audioElement: el,
+        }
+    };
+}
+
+export function enqueueFiles(flist: FileList):  AppAction {
+    return {
+        type: APP_ACTION,
+        data: {
+            enqueueFiles: flist,
+        }
+    };
+}
+
+export function nextTrack(): AppAction {
+    return {
+        type: APP_ACTION,
+        data: {
+            nextTrack: true,
+        }
+    };
+}
+
+export function resetTrack(): AppAction {
+    return {
+        type: APP_ACTION,
+        data: {
+            resetTrack: true,
         }
     };
 }

@@ -106,9 +106,10 @@ const frgShdr = `
         int bin = int(texcoord.x*float(BIN_SIZE));
         float val = getBin(bin);
         float maxSample = getMaxSample(bin);
+        float emit = step(texcoord.y, val);
     
-        gl_FragColor = vec4(step(texcoord.y, val) * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
-        gl_FragColor = mix(gl_FragColor, step(texcoord.y, val) * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
+        gl_FragColor = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
+        gl_FragColor = mix(gl_FragColor, emit * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
         gl_FragColor = mix(gl_FragColor, vec4(0., .4, 1., 1.),  step(abs(texcoord.y - maxSample), fwidth(texcoord.y))); 
     }
 `;
@@ -130,7 +131,7 @@ export default class Renderer {
     private analyser: AnalyserNode | null;
     private fftBuffer = new Uint8Array(0);
     private seqLength = 0;
-    readonly fftSize = 256;
+    readonly fftSize = 512;
     readonly binSize = 128;
     private bins = new Float32Array(this.binSize);
 
@@ -162,10 +163,7 @@ export default class Renderer {
     public setAnalyser(analyser: AnalyserNode): void {
         this.analyser = analyser;
         this.fftBuffer = new Uint8Array(analyser.frequencyBinCount);
-        const count = this.analyser.frequencyBinCount/this.bins.length;
-        this.seqLength = Math.floor(count);
-        console.log("count:", count, "seqLength:", this.seqLength);
-        console.log("seqLength:", this.seqLength);
+        this.seqLength = Math.floor(this.analyser.frequencyBinCount/this.bins.length);
     }
 
     public initialise(): boolean {
@@ -201,7 +199,10 @@ export default class Renderer {
         this.maxSamplesLoc = gl.getUniformLocation(this.prog, "maxSample[0]");
         if(this.maxSamplesLoc === -1) return false;
 
-        gl.useProgram(null);
+        // We only use one buffer right now, no need to rebind
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbuf);
+        gl.enableVertexAttribArray(this.loc0);
+        gl.vertexAttribPointer(this.loc0, 2, gl.FLOAT, false, 0, 0);
 
         this.animate = () => {
             // @ts-ignore
@@ -215,7 +216,6 @@ export default class Renderer {
     }
 
     public unload(): boolean {
-        console.log("CLEANUP");
         cancelAnimationFrame(this.frameId);
         this.el.removeEventListener("mousemove", this.onMouseMove);
         this.el.removeEventListener("mousedown", this.onMouseDown);
@@ -228,14 +228,6 @@ export default class Renderer {
     public setGain(gain: number): void {
         this.gain = clamp(gain, .05, .95);
     }
-
-    private val = 0;
-    private dir = 1;
-
-    /*
-    private lastTime = 0;
-    private idx = 0;
-    */
 
     private analyse(): void {
         if(!this.analyser) return;
@@ -263,11 +255,12 @@ export default class Renderer {
             this.maxSamples[i] = findMax(i, this.sampleIdx);
         }
 
-        this.gl.useProgram(this.prog);
         this.gl.uniform1fv(this.binsLoc, this.bins);
         this.gl.uniform1fv(this.maxSamplesLoc, this.maxSamples);
-
     }
+
+    private lastTime = 0;
+    private idx = 0;
 
     public update(): void {
         this.prevTime = this.currTime;
@@ -276,35 +269,16 @@ export default class Renderer {
 
         this.analyse();
 
-        /*
         if(this.currTime - this.lastTime > 10) {
-            console.log("FPS:", this.idx/10);
+            console.log("FPS:", this.idx/10, this.dt);
             this.idx = 0;
             this.lastTime = this.currTime;
         } else this.idx += 1;
-        */
-
-        if(this.val > 1) {
-            this.dir = -1;
-            this.val = 1;
-        }
-        if(this.val < 0) {
-            this.dir = +1;
-            this.val = 0;
-        }
-        this.val += this.dt * this.dir;
     }
 
     public render(): void {
         const gl = this.gl;
-        gl.useProgram(this.prog);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbuf);
-        gl.enableVertexAttribArray(this.loc0);
-        gl.vertexAttribPointer(this.loc0, 2, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        gl.useProgram(null);
     }
 
     public onResize = (): void => {
@@ -313,11 +287,6 @@ export default class Renderer {
         this.viewport[2] = this.el.width;
         this.viewport[3] = this.el.height;
         this.gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
-
-        console.log("Canvas Dims:", this.el.offsetWidth, this.el.offsetHeight);
-        console.log("Viewport:", this.el.width, this.el.height);
-        console.log("DPR:", window.devicePixelRatio);
-        console.log("viewport:", this.viewport, "devicePixelRatio:", this.DPR);
     };
 
     // Note: We flip the coordinate space to the default GL space, origin bottom-left

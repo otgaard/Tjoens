@@ -6,10 +6,12 @@ import React, {useEffect, useState} from "react";
 import Audio from "./webAudio/Audio";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import {useDispatch, useSelector} from "react-redux";
-import {AppState, setAudioContext} from "./reducer";
+import {AppState, nextTrack, resetTrack, setAudioContext} from "./reducer";
 import {Link} from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import Slider from "@material-ui/core/Slider";
+import UploadDialog from "./UploadDialog";
+import PlayList from "./UI/PlayList";
 
 const useStyles = makeStyles((theme) => ({
     layout: {
@@ -18,11 +20,23 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
+function toggleFullScreen() {
+    if(!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        if(document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
 // @ts-ignore
 window.AudioContext = (window.AudioContext || window.webkitAudioContext);
 
 // @ts-ignore
 export const isSafari = window.safari !== undefined;
+
+export const FFT_SIZE = 512;
 
 enum PlayState {
     PS_PLAYING,
@@ -32,15 +46,19 @@ enum PlayState {
 
 export default function Player() {
     const classes = useStyles();
-    const [audioFile, setAudioFile] = useState<File | null>(null);
     const [gain, setGain] = useState(.5);
     const audioElement = useSelector((state: AppState) => state.audioElement);
     const [playState, setPlayState] = useState(PlayState.PS_STOPPED);
+    const playList = useSelector<AppState, File[]>(state => state.playList);
+    const currentTrack = useSelector<AppState, number>(state => state.currentTrack);
+    const [currentFile, setCurrentFile] = useState<File | null>(null);
     const dispatch = useDispatch();
 
-    const stoppedEv = () => setPlayState(PlayState.PS_STOPPED);
+    const stoppedEv = () => {
+        dispatch(nextTrack());
+    };
 
-    const handleChange = (event: any, newValue: any) => {
+    const handleChange = (ev: any, newValue: any) => {
         console.log(newValue);
         setGain(newValue);
     };
@@ -48,44 +66,49 @@ export default function Player() {
     useEffect(() => {
         if(!audioElement) return;
 
-        console.log("Creating Audio Context");
         const ctx = new window.AudioContext();
         const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
+        analyser.fftSize = FFT_SIZE;
         const source = ctx.createMediaElementSource(audioElement);
         source.connect(analyser);
         analyser.connect(ctx.destination);
-        dispatch(setAudioContext(ctx, audioElement, source, analyser, null));
+        dispatch(setAudioContext(ctx, audioElement, source, analyser));
+        audioElement.addEventListener("ended", stoppedEv);
     }, [audioElement]);
 
     useEffect(() => {
         if(audioElement) {
             if(playState === PlayState.PS_PLAYING) {
+                if(currentTrack === playList.length) dispatch(resetTrack());
                 audioElement.play();
-                audioElement.addEventListener("ended", stoppedEv);
             } else if(playState === PlayState.PS_PAUSED) {
                 audioElement.pause();
-            } else if(playState === PlayState.PS_STOPPED) {
-                audioElement.removeEventListener("ended", stoppedEv);
             }
         }
     }, [playState]);
 
+    useEffect(() => {
+        console.log("Starting:", currentTrack, playList);
+        if(currentTrack === playList.length) {
+            setPlayState(PlayState.PS_STOPPED);
+        } else {
+            setCurrentFile(playList && currentTrack >= 0 ? playList[currentTrack] : null);
+            if(audioElement && currentTrack !== 0) audioElement.play();
+        }
+    }, [playList, currentTrack]);
+
     return (
         <React.Fragment>
-            <Audio file={audioFile} />
+            <Audio file={currentFile} />
             <Container className={classes.layout} maxWidth="md">
                 <Grid container spacing={4}>
-                    <Grid item key={0} xs={12} sm={6} md={4}>
-                        <input
-                            accept="audio/*"
-                            type="file"
-                            onChange={e => {
-                                setAudioFile(e.target.files && e.target.files[0]);
-                            }}
-                        />
+                    <Grid item key={0} xs={12} sm={6} md={2}>
+                        <UploadDialog />
                     </Grid>
-                    <Grid item key={1} xs={12} sm={2} md={2}>
+                    <Grid item key={1} xs={12} sm={6} md={2}>
+                        <PlayList />
+                    </Grid>
+                    <Grid item key={2} xs={12} sm={2} md={2}>
                         <Button
                             color="secondary"
                             variant="contained"
@@ -99,16 +122,14 @@ export default function Player() {
                             {playState === PlayState.PS_PLAYING ? "Pause" : "Play"}
                         </Button>
                     </Grid>
-                    <Grid item key={2} xs={12} sm={6} md={4}>
+                    <Grid item key={3} xs={12} sm={6} md={3}>
                         <Grid container spacing={2}>
                             <Typography id="continuous-slider" gutterBottom>
                                 Gain
                             </Typography>
                             <Grid item xs>
-
-
                                 <Slider value={gain}
-                                        defaultValue={0.5}
+                                        defaultValue={.5}
                                         step={.05}
                                         marks
                                         min={.05}
@@ -119,14 +140,14 @@ export default function Player() {
                             </Grid>
                         </Grid>
                     </Grid>
-                    <Grid item key={3} xs={12} sm={2} md={2}>
+                    <Grid item key={4} xs={12} sm={2} md={2}>
                         <Link
                             href="https://support.shadowhealth.com/hc/en-us/articles/360009548313-Audio-issues-in-Safari"
                         >
                             Safari Problems
                         </Link>
                     </Grid>
-                    <Grid item key={4} xs={12} sm={12} md={12} style={{height: "500px"}}>
+                    <Grid item key={5} xs={12} sm={12} md={12} style={{height: "500px"}}>
                         <Canvas gain={gain}/>
                     </Grid>
                 </Grid>

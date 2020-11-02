@@ -3,9 +3,6 @@ import makeStyles from "@material-ui/core/styles/makeStyles";
 import createMuiTheme from "@material-ui/core/styles/createMuiTheme";
 import {MuiThemeProvider} from "@material-ui/core";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
-import MusicNote from "@material-ui/icons/MusicNote";
 import Typography from "@material-ui/core/Typography";
 import purple from "@material-ui/core/colors/purple";
 import deepOrange from "@material-ui/core/colors/deepOrange";
@@ -19,17 +16,20 @@ const defaultTheme = createMuiTheme({
     palette: {
         primary: {
             main: purple[500],
-
         },
         secondary: {
             main: deepOrange[500],
         },
+        action: {
+            selected: "rgba(0, 0, 0, 0.5)",
+        },
         background: {
             default: "#222222",
+            paper: "#333333",
         },
         text: {
             primary: "#ffffff",
-            secondary: "#777",
+            secondary: "#999",
         },
     }
 });
@@ -57,15 +57,6 @@ export default function App() {
             <Provider store={store}>
                 <React.Fragment>
                     <CssBaseline />
-
-                    <AppBar position="relative">
-                        <Toolbar>
-                            <MusicNote className={classes.icon} />
-                            <Typography variant="h6" color="inherit" noWrap>
-                                Tjoens - Dis Lekker
-                            </Typography>
-                        </Toolbar>
-                    </AppBar>
                     <main>
                         <Player />
                     </main>
