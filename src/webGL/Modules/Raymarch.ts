@@ -2,7 +2,7 @@
 Implementation of Raymarching routines as a module for rendering scenes in the visualiser.
  */
 
-import {Module, ModuleConfig, ModuleValue} from "../Module";
+import {Module, ModuleContext, ModuleValue} from "../Module";
 import {Program} from "../GL";
 import {vec2} from "gl-matrix";
 
@@ -59,14 +59,14 @@ const fragShdrText = `
 export default class Raymarch implements Module {
     gl: WebGLRenderingContext | null = null;
     shdrProg: WebGLProgram | null = null;
-    conf: ModuleConfig | null = null;
+    conf: ModuleContext | null = null;
     readonly name = "Raymarch";
 
     posLoc = -1;
     screenDimsLoc: WebGLUniformLocation | null = -1;
     posRotLoc: WebGLUniformLocation | null = -1;
 
-    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader, conf: ModuleConfig): boolean {
+    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader, conf: ModuleContext): boolean {
         this.gl = gl;
         this.conf = conf;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);
@@ -90,7 +90,7 @@ export default class Raymarch implements Module {
         return true;
     }
 
-    public updateConf(value: ModuleValue): void {
+    public updateContext(value: ModuleValue): void {
         if(!this.gl || !this.conf) return;
         this.gl.useProgram(this.shdrProg);
         switch(value) {

@@ -11,6 +11,8 @@ export default function Audio(props: AudioProps) {
     const dispatch = useDispatch();
 
     useEffect(() => {
+        // TODO: The load needs to be moved into an async function that stores the "next" and "previous" track data
+        // in Redux so that we can smoothly play the next file and
         console.log("props.file:", props.file);
         if(props.file != null && audioRef) {
             const reader = new FileReader();
@@ -18,6 +20,7 @@ export default function Audio(props: AudioProps) {
                 if(audioRef.current) {
                     const wasPlaying = !audioRef.current.paused;
                     audioRef.current.src = e.target && e.target.result as string || "";
+                    console.log("Duration:", audioRef.current.duration);
                     if(wasPlaying) audioRef.current.play();
                     dispatch(setAudioContext(null, audioRef.current, null, null));
                 }

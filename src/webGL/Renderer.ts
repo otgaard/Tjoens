@@ -1,7 +1,7 @@
 import {clamp} from "../maths/functions";
 import requestAnimFrame from "./requestAnimFrame";
 import {Shader} from "./GL";
-import {defaultConfig, Module, ModuleConfig, ModuleValue} from "./Module";
+import {defaultContext, Module, ModuleContext, ModuleValue} from "./Module";
 //import Raymarch from "./Modules/Raymarch";
 import Histogram from "./Modules/Histogram";
 
@@ -53,7 +53,7 @@ export default class Renderer {
     private vbuf: WebGLBuffer | null = null;
     private vShdr: WebGLShader | null = null;
     private module: Module | null = null;
-    private conf: ModuleConfig = defaultConfig;
+    private ctx: ModuleContext = defaultContext;
 
     public constructor(el: HTMLCanvasElement) {
         this.el = el;
@@ -71,7 +71,7 @@ export default class Renderer {
 
     public setAnalyser(analyser: AnalyserNode): void {
         this.analyser = analyser;
-        this.conf.fftBuffer = new Uint8Array(analyser.frequencyBinCount);
+        this.ctx.fftBuffer = new Uint8Array(analyser.frequencyBinCount);
     }
 
     public initialise(): boolean {
@@ -103,7 +103,7 @@ export default class Renderer {
         }
 
         this.module = new Histogram();
-        this.module.initialise(gl, this.vShdr, this.conf);
+        this.module.initialise(gl, this.vShdr, this.ctx);
 
         // We only use one buffer right now, no need to rebind
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbuf);
@@ -129,35 +129,35 @@ export default class Renderer {
     }
 
     public setGain(gain: number): void {
-        this.conf.gain = clamp(gain, .05, .95);
-        if(this.module) this.module.updateConf(ModuleValue.GAIN);
+        this.ctx.gain = clamp(gain, .05, .95);
+        if(this.module) this.module.updateContext(ModuleValue.GAIN);
     }
 
     private analyse(): void {
-        if(!this.analyser || !this.conf) return;
-        const conf = this.conf;
+        if(!this.analyser || !this.ctx) return;
+        const ctx = this.ctx;
 
-        this.analyser.getByteFrequencyData(conf.fftBuffer);
+        this.analyser.getByteFrequencyData(ctx.fftBuffer);
 
-        for(let i = 0; i !== conf.binSize; ++i) {
-            const idx = conf.frameSize * i;
-            const v = conf.fftBuffer[i] * invUint8;
-            conf.binBuffer[i] = v;
-            conf.sampleBuffer[idx+conf.startIdx] = v;
+        for(let i = 0; i !== ctx.binSize; ++i) {
+            const idx = ctx.frameSize * i;
+            const v = ctx.fftBuffer[i] * invUint8;
+            ctx.binBuffer[i] = v;
+            ctx.sampleBuffer[idx+ctx.startIdx] = v;
             const mi = 3*i;
             let mma = [1., 0., 0.];
-            for(let j = 0; j !== conf.frameSize; ++j) {
+            for(let j = 0; j !== ctx.frameSize; ++j) {
                 const ci = idx + j;
-                const val = conf.sampleBuffer[ci];
+                const val = ctx.sampleBuffer[ci];
                 if(val < mma[0]) mma[0] = val;
                 if(val > mma[1]) mma[1] = val;
-                mma[2] += val/conf.frameSize;
+                mma[2] += val;
             }
-            conf.minMaxAvg.set(mma, mi);
+            mma[2] /= ctx.frameSize;
+            ctx.minMaxAvg.set(mma, mi);
         }
 
-        conf.startIdx = (conf.startIdx + 1) % conf.frameSize;
-        console.log("idx:", conf.startIdx, conf.minMaxAvg.slice(0, 3));
+        ctx.startIdx = (ctx.startIdx + 1) % ctx.frameSize;
     }
 
     private lastTime = 0;
@@ -170,7 +170,7 @@ export default class Renderer {
 
         this.analyse();
         if(this.module) {
-            this.module.analysis();
+            if(this.module.analysis) this.module.analysis();
             this.module.update(this.dt);
         }
 
@@ -190,9 +190,9 @@ export default class Renderer {
         this.el.height = this.el.offsetHeight * this.DPR;
         this.viewport[2] = this.el.width;
         this.viewport[3] = this.el.height;
-        this.conf.screenDims[0] = this.el.width;
-        this.conf.screenDims[1] = this.el.height;
-        if(this.module) this.module.updateConf(ModuleValue.SCREENDIMS);
+        this.ctx.screenDims[0] = this.el.width;
+        this.ctx.screenDims[1] = this.el.height;
+        if(this.module) this.module.updateContext(ModuleValue.SCREENDIMS);
         console.log(this.el.width, this.el.height);
         this.gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
     };
@@ -202,8 +202,8 @@ export default class Renderer {
         const x = ev.x - this.el.offsetLeft;
         const y = this.viewport[Viewport.HEIGHT] - (ev.y - this.el.offsetTop);
         this.lastMousePos.set([
-            clamp(devicePixelRatio*x, 0, this.viewport[Viewport.WIDTH]),
-            clamp(devicePixelRatio*y, 0, this.viewport[Viewport.HEIGHT]),
+            clamp(this.DPR*x, 0, this.viewport[Viewport.WIDTH]),
+            clamp(this.DPR*y, 0, this.viewport[Viewport.HEIGHT]),
         ]);
     };
 

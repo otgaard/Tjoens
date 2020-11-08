@@ -1,5 +1,11 @@
 const APP_ACTION = "TJOENS";
 
+export enum PlayState {
+    PS_PLAYING,
+    PS_PAUSED,
+    PS_STOPPED,
+}
+
 interface AppAction {
     type: string;
     data: {
@@ -10,7 +16,9 @@ interface AppAction {
         audioFile?: File | null;
         enqueueFiles?: FileList | null;
         nextTrack?: Boolean | null;
+        prevTrack?: Boolean | null;
         resetTrack?: Boolean | null;
+        playState?: PlayState | null;
     }
 }
 
@@ -22,6 +30,7 @@ export interface AppState {
     audioFile: File | null;
     playList: Array<File>;
     currentTrack: number;
+    playState: PlayState;
 }
 
 const initialState: AppState = {
@@ -32,6 +41,7 @@ const initialState: AppState = {
     audioFile: null,
     playList: new Array<File>(),
     currentTrack: -1,
+    playState: PlayState.PS_STOPPED,
 };
 
 function concatPlaylist(plist: Array<File>, flist: FileList): Array<File> {
@@ -44,6 +54,8 @@ function concatPlaylist(plist: Array<File>, flist: FileList): Array<File> {
 export function appReducer(state: AppState=initialState, action: AppAction): AppState {
     if(action.type !== APP_ACTION) return state;
 
+    console.log("REDUCER", action);
+
     if(action.data.enqueueFiles) {
         concatPlaylist(state.playList, action.data.enqueueFiles);
         if(state.currentTrack === -1) {
@@ -54,10 +66,21 @@ export function appReducer(state: AppState=initialState, action: AppAction): App
         }
     }
 
-    if(action.data.nextTrack) {
+    if(action.data.playState != null) {
+        console.log("setting playstate...", action.data.playState);
         return {
             ...state,
-            currentTrack: Math.min(state.currentTrack + 1, state.playList.length),
+            playState: action.data.playState,
+        };
+    }
+
+    if(action.data.nextTrack || action.data.prevTrack) {
+        return {
+            ...state,
+            currentTrack:
+                action.data.nextTrack
+                    ? Math.min(state.currentTrack + 1, state.playList.length)
+                    : Math.max(state.currentTrack - 1, 0),
         };
     }
 
@@ -131,11 +154,30 @@ export function nextTrack(): AppAction {
     };
 }
 
+export function prevTrack(): AppAction {
+    return {
+        type: APP_ACTION,
+        data: {
+            prevTrack: true,
+        }
+    };
+}
+
 export function resetTrack(): AppAction {
     return {
         type: APP_ACTION,
         data: {
             resetTrack: true,
+        }
+    };
+}
+
+export function setPlayState(playState: PlayState): AppAction {
+    console.log("setPlayState");
+    return {
+        type: APP_ACTION,
+        data: {
+            playState: playState,
         }
     };
 }

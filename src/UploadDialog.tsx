@@ -7,6 +7,8 @@ import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import {enqueueFiles} from "./reducer";
+import IconButton from "@material-ui/core/IconButton";
+import PlayListAdd from "@material-ui/icons/PlaylistAdd";
 
 export default function UploadDialog() {
     const [open, setOpen] = React.useState(false);
@@ -26,10 +28,10 @@ export default function UploadDialog() {
     };
 
     return (
-        <div>
-            <Button variant="contained" color="primary" onClick={handleClickOpen}>
-                Upload
-            </Button>
+        <React.Fragment>
+            <IconButton onClick={handleClickOpen}>
+                <PlayListAdd htmlColor="#fff" />
+            </IconButton>
             <Dialog open={open} onClose={handleClose} aria-labelledby="form-dialog-title">
                 <DialogTitle id="form-dialog-title">Add to Playlist</DialogTitle>
                 <DialogContent>
@@ -59,6 +61,6 @@ export default function UploadDialog() {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </div>
+        </React.Fragment>
     );
 }

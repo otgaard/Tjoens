@@ -1,5 +1,4 @@
 import React from "react";
-import Button from "@material-ui/core/Button";
 import SwipeableDrawer from "@material-ui/core/SwipeableDrawer";
 import {useState} from "react";
 import List from "@material-ui/core/List";
@@ -9,6 +8,8 @@ import makeStyles from "@material-ui/core/styles/makeStyles";
 import {useSelector} from "react-redux";
 import {AppState} from "../reducer";
 import deepOrange from "@material-ui/core/colors/deepOrange";
+import IconButton from "@material-ui/core/IconButton";
+import QueueMusic from "@material-ui/icons/QueueMusic";
 
 const useStyles = makeStyles((theme) => ({
     layout: {
@@ -43,9 +44,11 @@ export default function PlayList() {
 
     return (
         <React.Fragment>
-            <Button variant="contained" color="primary" onClick={() => setOpen(true)}>PlayList</Button>
+            <IconButton onClick={() => setOpen(true)}>
+                <QueueMusic htmlColor="#fff" />
+            </IconButton>
             <SwipeableDrawer
-                anchor="left"
+                anchor="right"
                 classes={{paper: styles.paper}}
                 open={open}
                 onClose={() => setOpen(false)}

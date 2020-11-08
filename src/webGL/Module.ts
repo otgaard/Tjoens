@@ -4,7 +4,7 @@ A simple module structure for creating WebGL resources, analysis, update, and re
 
 import {FFT_SIZE} from "../Player";
 
-export interface ModuleConfig {
+export interface ModuleContext {
     gain: number;
     screenDims: Int32Array;     // The current screen resolution
 
@@ -18,10 +18,10 @@ export interface ModuleConfig {
     startIdx: number;           // The start idx for the circular buffers (advanced each frame)
 }
 
-const BIN_SIZE = 128;
+const BIN_SIZE = 256;
 const SAMPLE_FRAMES = 20;
 
-export const defaultConfig: ModuleConfig = {
+export const defaultContext: ModuleContext = {
     gain: .5,
     screenDims: new Int32Array([0, 0]),
     fftSize: FFT_SIZE,
@@ -45,11 +45,11 @@ export interface Module {
     shdrProg: WebGLProgram | null;
     name: string;
 
-    initialise: (gl: WebGLRenderingContext, vtxShdr: WebGLShader, conf: ModuleConfig) => boolean;
+    initialise: (gl: WebGLRenderingContext, vtxShdr: WebGLShader, ctx: ModuleContext) => boolean;
     destroy: () => boolean;
 
-    updateConf: (value: ModuleValue) => void;
-    analysis: () => void;
+    updateContext: (value: ModuleValue) => void;
+    analysis?: () => void;
     update: (dt: number) => void;
     draw: () => void;
 }

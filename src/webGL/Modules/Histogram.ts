@@ -2,7 +2,7 @@
 The first module, simple bars of the fft histogram
  */
 
-import {Module, ModuleConfig, ModuleValue} from "../Module";
+import {Module, ModuleContext, ModuleValue} from "../Module";
 import {Program} from "../GL";
 
 const fragShdrText = `
@@ -10,8 +10,8 @@ const fragShdrText = `
     
     #extension GL_OES_standard_derivatives : enable
     
-    #define BIN_SIZE 90
-    #define INV_BIN 1./90.
+    #define BIN_SIZE 255
+    #define INV_BIN 1./255.
     
     uniform float bins[BIN_SIZE];
     uniform float maxSample[3*BIN_SIZE];
@@ -42,14 +42,14 @@ const fragShdrText = `
         float emit = step(texcoord.y, val);
     
         gl_FragColor = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
-        gl_FragColor = mix(gl_FragColor, emit * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
-        gl_FragColor = mix(gl_FragColor, vec4(0., .4, 1., 1.),  step(abs(texcoord.y - maxSample), fwidth(texcoord.y))); 
+        //gl_FragColor = mix(gl_FragColor, emit * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
+        gl_FragColor = mix(gl_FragColor, vec4(maxSample, 0., 1. - maxSample, 1.),  step(abs(texcoord.y - maxSample), 2.*fwidth(texcoord.y))); 
     }
 `;
 
 export default class Histogram implements Module {
     gl: WebGLRenderingContext | null = null;
-    conf: ModuleConfig | null = null;
+    conf: ModuleContext | null = null;
     shdrProg: WebGLProgram | null = null;
     readonly name = "Histogram";
 
@@ -57,7 +57,7 @@ export default class Histogram implements Module {
     private binsLoc: WebGLUniformLocation | null = null;
     private maxSamplesLoc: WebGLUniformLocation | null = null;
 
-    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader, conf: ModuleConfig): boolean {
+    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader, conf: ModuleContext): boolean {
         this.gl = gl;
         this.conf = conf;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);
@@ -96,42 +96,12 @@ export default class Histogram implements Module {
         this.gl.useProgram(null);
     }
 
-    public updateConf(value: ModuleValue) {
+    public updateContext(value: ModuleValue) {
         (value);
     }
 
     public analysis(): void {
-        /*
-        if(!this.conf || !this.conf.fftBuffer) return;
-        const fft = this.conf.fftBuffer;
 
-        if(this.binSize != this.conf.fftBuffer.length) {
-            this.seqLength = Math.floor(fft.length/this.bins.length);
-            this.invScale = 1./(this.seqLength*255);
-        }
-
-        this.bins.fill(0);
-
-        const findMax = (bin: number, off: number): number => {
-            const start = this.sampleCount*bin, end = this.sampleCount*(bin+1);
-            let max = this.samples[start + off];
-            for(let i = start; i !== end; ++i) {
-                const s = this.samples[start + (i + off) % this.sampleCount];
-                if(s > max) max = s;
-            }
-            return max;
-        };
-
-        for(let i = 0; i !== this.bins.length; ++i) {
-            for(let j = 0; j !== this.seqLength; ++j) {
-                this.bins[i] += fft[i*this.seqLength + j];
-            }
-            this.bins[i] = gain(this.invScale*this.bins[i], this.conf.gain);
-            this.samples[this.sampleCount*i + this.sampleIdx] = this.bins[i];
-            this.sampleIdx = (this.sampleIdx+1) % this.sampleCount;
-            this.maxSamples[i] = findMax(i, this.sampleIdx);
-        }
-        */
     }
 
     public draw(): void {
