@@ -20,6 +20,7 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
+/*
 function toggleFullScreen() {
     if(!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
@@ -29,6 +30,7 @@ function toggleFullScreen() {
         }
     }
 }
+*/
 
 // @ts-ignore
 window.AudioContext = (window.AudioContext || window.webkitAudioContext);
@@ -58,6 +60,7 @@ export default function Player() {
         dispatch(nextTrack());
     };
 
+    // @ts-ignore
     const handleChange = (ev: any, newValue: any) => {
         console.log(newValue);
         setGain(newValue);
