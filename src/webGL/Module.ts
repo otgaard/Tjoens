@@ -19,7 +19,7 @@ export interface ModuleContext {
 }
 
 const BIN_SIZE = 256;
-const SAMPLE_FRAMES = 20;
+const SAMPLE_FRAMES = 30;
 
 export const defaultContext: ModuleContext = {
     gain: .5,

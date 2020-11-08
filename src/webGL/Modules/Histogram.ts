@@ -12,6 +12,7 @@ const fragShdrText = `
     
     #define BIN_SIZE 255
     #define INV_BIN 1./255.
+    #define HINV_BIN 1./510.
     
     uniform float bins[BIN_SIZE];
     uniform float maxSample[3*BIN_SIZE];
@@ -35,15 +36,37 @@ const fragShdrText = `
         return 0.;
     }
 
+    float seg(vec2 p, vec2 a, vec2 b) {
+        vec2 PA = p - a;
+        vec2 BA = b - a;
+        float proj = clamp(dot(PA, BA)/dot(BA, BA), 0., 1.);
+        float len = length(PA - proj*BA);
+        return smoothstep(0., 2.*fwidth(p.x), len);
+    }
+
     void main() {
         int bin = int(texcoord.x*float(BIN_SIZE));
         float val = getBin(bin);
         float maxSample = getMaxSample(bin);
         float emit = step(texcoord.y, val);
+        int binm1 = int(max(float(bin)-1., 0.));
+        int binp1 = int(min(float(bin)+1., float(BIN_SIZE)));
+        
+        float off = INV_BIN*float(bin);
+        float off2 = off+INV_BIN;
+        vec2 A = vec2(off, getMaxSample(binm1));
+        vec2 B = vec2(off, maxSample);
+        vec2 C = vec2(off2, maxSample);
+        vec2 D = vec2(off2, getMaxSample(binp1));        
     
-        gl_FragColor = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
         //gl_FragColor = mix(gl_FragColor, emit * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
-        gl_FragColor = mix(gl_FragColor, vec4(maxSample, 0., 1. - maxSample, 1.),  step(abs(texcoord.y - maxSample), 2.*fwidth(texcoord.y))); 
+        
+        //float delta = 3.*(maxSample - val);
+        gl_FragColor = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
+        vec4 col = vec4(maxSample, 0., 1. - maxSample, 1.);
+        gl_FragColor = mix(col, gl_FragColor, seg(texcoord, A, B));
+        gl_FragColor = mix(col, gl_FragColor, seg(texcoord, B, C));
+        gl_FragColor = mix(col, gl_FragColor, seg(texcoord, C, D));
     }
 `;
 
