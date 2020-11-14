@@ -1,9 +1,10 @@
 import {clamp} from "../maths/functions";
 import requestAnimFrame from "./requestAnimFrame";
 import {Shader} from "./GL";
-import {defaultContext, Module, ModuleContext, ModuleValue} from "./Module";
-//import Raymarch from "./Modules/Raymarch";
-import Histogram from "./Modules/Histogram";
+import {defaultContext, FFTChannels, Module, ModuleContext, ModuleValue} from "../Modules/Module";
+//import Raymarch from "../Modules/Raymarch";
+import Histogram from "../Modules/Histogram";
+import Spectrogram from "../Modules/Spectrogram";
 
 enum Viewport {
     X,
@@ -19,8 +20,6 @@ const quadPositions = [
     +1., -1.,
 ];
 
-const invUint8 = 1./255.;
-
 const vtxShdr = `
     precision highp float;
     
@@ -33,6 +32,11 @@ const vtxShdr = `
         gl_Position = vec4(position, 0., 1.);
     }   
 `;
+
+const ModuleIndex = {
+    "histogram": Histogram,
+    "spectrogram": Spectrogram,
+};
 
 export default class Renderer {
     private el: HTMLCanvasElement;
@@ -48,10 +52,12 @@ export default class Renderer {
     private lastMousePos = new Float32Array(2);
     private lastMouseButton = -1;
 
-    private analyser: AnalyserNode | null;
+    private analyser: AnalyserNode | null = null;
+    private delay: DelayNode | null = null;
 
     private vbuf: WebGLBuffer | null = null;
     private vShdr: WebGLShader | null = null;
+
     private module: Module | null = null;
     private ctx: ModuleContext = defaultContext;
 
@@ -60,7 +66,6 @@ export default class Renderer {
         this.gl = el.getContext("webgl") as WebGLRenderingContext;
         if(!this.gl) throw("Failed to construct WebGL Rendering Context");
 
-        this.analyser = null;
         this.DPR = window.devicePixelRatio;
         this.onResize();
 
@@ -69,9 +74,12 @@ export default class Renderer {
         }
     }
 
+    public setDelay(delay: DelayNode): void {
+        this.delay = delay;
+    }
+
     public setAnalyser(analyser: AnalyserNode): void {
         this.analyser = analyser;
-        this.ctx.fftBuffer = new Uint8Array(analyser.frequencyBinCount);
     }
 
     public initialise(): boolean {
@@ -102,8 +110,12 @@ export default class Renderer {
             return false;
         }
 
-        this.module = new Histogram();
-        this.module.initialise(gl, this.vShdr, this.ctx);
+        if(!this.ctx.sampleTex.initialise(gl)) {
+            console.error("Failed to initialise sample Texture");
+            return false;
+        }
+
+        this.setModule("histogram");
 
         // We only use one buffer right now, no need to rebind
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbuf);
@@ -133,31 +145,76 @@ export default class Renderer {
         if(this.module) this.module.updateContext(ModuleValue.GAIN);
     }
 
+    public setModule(module: string): void {
+        // @ts-ignore
+        const mod = new (ModuleIndex[module])();
+        if(mod && this.vShdr) {
+            const ctx = mod.initialise(this.gl, this.vShdr);
+            if(mod && ctx) {
+                this.module = mod;
+                this.ctx = ctx;
+                if(this.delay) {
+                    console.log("Setting delay to:", ctx.delay);
+                    this.delay.delayTime.value = ctx.delay;
+                }
+            } else {
+                if(mod) mod.destroy();
+            }
+        }
+    }
+
     private analyse(): void {
         if(!this.analyser || !this.ctx) return;
         const ctx = this.ctx;
 
         this.analyser.getByteFrequencyData(ctx.fftBuffer);
 
+        const ch = ctx.sampleTex.getChannels();
+
         for(let i = 0; i !== ctx.binSize; ++i) {
-            const idx = ctx.frameSize * i;
-            const v = ctx.fftBuffer[i] * invUint8;
-            ctx.binBuffer[i] = v;
+            const idx = ctx.sampleSize * i;
+            const v = ctx.fftBuffer[i];
             ctx.sampleBuffer[idx+ctx.startIdx] = v;
-            const mi = 3*i;
+
+            // TODO: Use differences rather than repeated calculation
             let mma = [1., 0., 0.];
-            for(let j = 0; j !== ctx.frameSize; ++j) {
+            for(let j = 0; j !== ctx.sampleSize; ++j) {
                 const ci = idx + j;
                 const val = ctx.sampleBuffer[ci];
                 if(val < mma[0]) mma[0] = val;
                 if(val > mma[1]) mma[1] = val;
                 mma[2] += val;
             }
-            mma[2] /= ctx.frameSize;
-            ctx.minMaxAvg.set(mma, mi);
+            mma[2] /= ctx.sampleSize;
+
+            const bufIdx = ch * i;
+            let c = 0;
+
+            if(ctx.fftChannels & FFTChannels.BIN) {
+                ctx.dataBuffer[bufIdx] = v;
+                c += 1;
+            }
+
+            if(ctx.fftChannels & FFTChannels.MIN) {
+                ctx.dataBuffer[bufIdx+c] = mma[0];
+                c += 1;
+            }
+
+            if(ctx.fftChannels & FFTChannels.MAX) {
+                ctx.dataBuffer[bufIdx+c] = mma[1];
+                c += 1;
+            }
+
+            if(ctx.fftChannels & FFTChannels.AVG) {
+                ctx.dataBuffer[bufIdx+c] = mma[2];
+            }
         }
 
-        ctx.startIdx = (ctx.startIdx + 1) % ctx.frameSize;
+        if(!ctx.sampleTex.advanceRow(ctx.dataBuffer)) {
+            console.log("warning: advanceRow");
+        }
+
+        ctx.startIdx = (ctx.startIdx + 1) % ctx.sampleSize;
     }
 
     private lastTime = 0;

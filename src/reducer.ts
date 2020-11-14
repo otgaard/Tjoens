@@ -13,6 +13,7 @@ interface AppAction {
         audioSource?: MediaElementAudioSourceNode | null;
         audioElement?: HTMLAudioElement | null;
         analyser?: AnalyserNode | null;
+        delay?: DelayNode | null;
         audioFile?: File | null;
         enqueueFiles?: FileList | null;
         nextTrack?: Boolean | null;
@@ -27,6 +28,7 @@ export interface AppState {
     audioSource: MediaElementAudioSourceNode | null;
     audioElement: HTMLAudioElement | null;
     analyser: AnalyserNode | null;
+    delay: DelayNode | null;
     audioFile: File | null;
     playList: Array<File>;
     currentTrack: number;
@@ -38,6 +40,7 @@ const initialState: AppState = {
     audioSource: null,
     audioElement: null,
     analyser: null,
+    delay: null,
     audioFile: null,
     playList: new Array<File>(),
     currentTrack: -1,
@@ -54,7 +57,7 @@ function concatPlaylist(plist: Array<File>, flist: FileList): Array<File> {
 export function appReducer(state: AppState=initialState, action: AppAction): AppState {
     if(action.type !== APP_ACTION) return state;
 
-    console.log("REDUCER", action);
+    //console.log("REDUCER", action);
 
     if(action.data.enqueueFiles) {
         concatPlaylist(state.playList, action.data.enqueueFiles);
@@ -67,7 +70,7 @@ export function appReducer(state: AppState=initialState, action: AppAction): App
     }
 
     if(action.data.playState != null) {
-        console.log("setting playstate...", action.data.playState);
+        //console.log("setting playstate...", action.data.playState);
         return {
             ...state,
             playState: action.data.playState,
@@ -97,6 +100,7 @@ export function appReducer(state: AppState=initialState, action: AppAction): App
         audioSource: action.data.audioSource || state.audioSource,
         audioElement: action.data.audioElement || state.audioElement,
         analyser: action.data.analyser || state.analyser,
+        delay: action.data.delay || state.delay,
         audioFile: action.data.audioFile || state.audioFile,
     };
 }
@@ -106,6 +110,7 @@ export function setAudioContext(
     el: HTMLAudioElement | null,
     source: MediaElementAudioSourceNode | null,
     analyser: AnalyserNode | null,
+    delay: DelayNode | null,
 ): AppAction {
     return {
         type: APP_ACTION,
@@ -114,6 +119,7 @@ export function setAudioContext(
             audioElement: el,
             audioSource: source,
             analyser: analyser,
+            delay: delay,
         }
     };
 }
@@ -173,7 +179,7 @@ export function resetTrack(): AppAction {
 }
 
 export function setPlayState(playState: PlayState): AppAction {
-    console.log("setPlayState");
+    //console.log("setPlayState");
     return {
         type: APP_ACTION,
         data: {

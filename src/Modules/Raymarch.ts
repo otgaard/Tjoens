@@ -2,8 +2,8 @@
 Implementation of Raymarching routines as a module for rendering scenes in the visualiser.
  */
 
-import {Module, ModuleContext, ModuleValue} from "../Module";
-import {Program} from "../GL";
+import {Module, ModuleContext, ModuleValue} from "./Module";
+import {Program} from "../webGL/GL";
 import {vec2} from "gl-matrix";
 
 const fragShdrText = `
@@ -120,7 +120,8 @@ export default class Raymarch implements Module {
         if(this.timer > 2.) {
             this.timer = 0;
             vec2.set(this.pos, this.dest[0], this.dest[1]);
-            vec2.set(this.dest, Math.random()*this.conf.screenDims[0], Math.random()*this.conf.screenDims[1]);
+            vec2.set(this.dest, Math.random()*this.conf.screenDims[0],
+                Math.random()*this.conf.screenDims[1]);
             vec2.sub(this.delta, this.dest, this.pos);
             vec2.set(this.stepSize, 1./(2*60), 1./(2*60));
             vec2.mul(this.delta, this.delta, this.stepSize);
@@ -145,7 +146,7 @@ export default class Raymarch implements Module {
     public draw(): void {
         if(!this.gl) return;
 
-        console.log("draw");
+        //console.log("draw");
 
         this.gl.enableVertexAttribArray(this.posLoc);
         this.gl.vertexAttribPointer(this.posLoc, 2, this.gl.FLOAT, false, 0, 0);
