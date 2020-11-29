@@ -59,7 +59,7 @@ export default class Histogram implements Module {
     public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader): ModuleContext | null {
         this.gl = gl;
         this.ctx = makeContext(512, 256, 20, FFTChannels.BIN | FFTChannels.MAX);
-        this.ctx.delay = 5./60.;
+        this.ctx.delay = 3./60.;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);
 
         if(!this.shdrProg || !this.ctx.sampleTex.initialise(gl)) return null;

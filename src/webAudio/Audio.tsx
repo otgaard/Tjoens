@@ -20,9 +20,8 @@ export default function Audio(props: AudioProps) {
                 if(audioRef.current) {
                     const wasPlaying = !audioRef.current.paused;
                     audioRef.current.src = e.target && e.target.result as string || "";
-                    console.log("Duration:", audioRef.current.duration);
                     if(wasPlaying) audioRef.current.play();
-                    dispatch(setAudioContext(null, audioRef.current, null, null));
+                    dispatch(setAudioContext(null, audioRef.current, null, null, null));
                 }
             };
             reader.readAsDataURL(props.file);

@@ -43,7 +43,7 @@ export default function Player() {
 
     const playList = useSelector<AppState, File[]>(state => state.playList);
     const currentTrack = useSelector<AppState, number>(state => state.currentTrack);
-    const [currentFile, setCurrentFile] = useState<File | null>(null);
+    const [currentFile, setCurrentFile] = useState<File>(null);
     const dispatch = useDispatch();
 
     const stoppedEv = () => {
@@ -64,7 +64,7 @@ export default function Player() {
         analyser.fftSize = FFT_SIZE;
 
         const delay = ctx.createDelay(1.0);
-        delay.delayTime.value = 5./60.;
+        delay.delayTime.value = 3./60.;
 
         const source = ctx.createMediaElementSource(audioElement);
         source.connect(analyser);

@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from "react";
 import makeStyles from "@material-ui/core/styles/makeStyles";
-import Renderer from "./webGL/Renderer";
+import Visualiser from "./webGL/Visualiser";
 import {AppState} from "./reducer";
 import {useSelector} from "react-redux";
 
@@ -19,7 +19,7 @@ export interface CanvasProps {
 
 export default function Canvas(props: CanvasProps) {
     const classes = useStyles();
-    const [renderer, setRenderer] = useState<Renderer | null>(null);
+    const [renderer, setRenderer] = useState<Visualiser | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const analyser = useSelector((state: AppState) => state.analyser);
     const delay = useSelector((state: AppState) => state.delay);
@@ -35,7 +35,7 @@ export default function Canvas(props: CanvasProps) {
     useEffect(() => {
         if(canvasRef.current != null) {
             const ref = canvasRef.current;
-            setRenderer(new Renderer(ref));
+            setRenderer(new Visualiser(ref));
 
             return function destroy() {
                 renderer && renderer.unload();

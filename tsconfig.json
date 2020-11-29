@@ -5,7 +5,7 @@
     // path to output directory
     "outDir": "./docs/",
     // enable strict null checks as a best practice
-    "strictNullChecks": true,
+    "strictNullChecks": false,
     // Search under node_modules for non-relative imports.
     "moduleResolution": "node",
     // Process & infer types from .js files.

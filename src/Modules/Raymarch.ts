@@ -2,9 +2,9 @@
 Implementation of Raymarching routines as a module for rendering scenes in the visualiser.
  */
 
-import {Module, ModuleContext, ModuleValue} from "./Module";
-import {Program} from "../webGL/GL";
-import {vec2} from "gl-matrix";
+import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Module";
+import { Program } from "../webGL/GL";
+import { vec2f as vec2 } from "../maths/Vec2";
 
 const fragShdrText = `
     #extension GL_OES_standard_derivatives : enable
@@ -59,31 +59,32 @@ const fragShdrText = `
 export default class Raymarch implements Module {
     gl: WebGLRenderingContext | null = null;
     shdrProg: WebGLProgram | null = null;
-    conf: ModuleContext | null = null;
+    ctx: ModuleContext | null = null;
     readonly name = "Raymarch";
 
     posLoc = -1;
     screenDimsLoc: WebGLUniformLocation | null = -1;
     posRotLoc: WebGLUniformLocation | null = -1;
 
-    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader, conf: ModuleContext): boolean {
+    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader): ModuleContext {
         this.gl = gl;
-        this.conf = conf;
+        this.ctx = makeContext(128, 64, 1, FFTChannels.BIN | FFTChannels.MAX);
+        this.ctx.delay = 3./60.;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);
-        if(!this.shdrProg) return false;
+        if(!this.shdrProg || !this.ctx.sampleTex.initialise(gl)) return null;
 
         gl.useProgram(this.shdrProg);
 
         this.posLoc = gl.getAttribLocation(this.shdrProg, "position");
-        if(this.posLoc !== 0) return false;
+        if(this.posLoc !== 0) return null;
 
         this.screenDimsLoc = gl.getUniformLocation(this.shdrProg, "screenDims");
-        this.gl.uniform2fv(this.screenDimsLoc, this.conf.screenDims);
+        this.gl.uniform2fv(this.screenDimsLoc, this.ctx.screenDims);
         this.posRotLoc = gl.getUniformLocation(this.shdrProg, "pos_rot");
         this.gl.uniform3fv(this.posRotLoc, [0., 0., 0.]);
 
         gl.useProgram(null);
-        return this.gl.getError() === this.gl.NO_ERROR;
+        return this.gl.getError() === this.gl.NO_ERROR ? this.ctx : null;
     }
 
     public destroy(): boolean {
@@ -91,11 +92,11 @@ export default class Raymarch implements Module {
     }
 
     public updateContext(value: ModuleValue): void {
-        if(!this.gl || !this.conf) return;
+        if(!this.gl || !this.ctx) return;
         this.gl.useProgram(this.shdrProg);
         switch(value) {
             case ModuleValue.SCREENDIMS:
-                this.gl.uniform2fv(this.screenDimsLoc, this.conf.screenDims);
+                this.gl.uniform2fv(this.screenDimsLoc, this.ctx.screenDims);
                 break;
             default:
         }
@@ -108,32 +109,33 @@ export default class Raymarch implements Module {
     private curr: vec2 = vec2.create();
     private stepSize: vec2 = vec2.create();
     private rot = 0;
-    private bin = 0;
     private timer = 0;
 
     public update(dt: number): void {
-        if(!this.gl || !this.conf) return;
+        if(!this.gl || !this.ctx) return;
 
         //console.log("rot:", this.rot);
 
         this.timer += dt;
         if(this.timer > 2.) {
             this.timer = 0;
+
+            console.log(this.ctx.screenDims);
+
             vec2.set(this.pos, this.dest[0], this.dest[1]);
-            vec2.set(this.dest, Math.random()*this.conf.screenDims[0],
-                Math.random()*this.conf.screenDims[1]);
+            vec2.set(this.dest, Math.random()*this.ctx.screenDims[0],
+                Math.random()*this.ctx.screenDims[1]);
             vec2.sub(this.delta, this.dest, this.pos);
             vec2.set(this.stepSize, 1./(2*60), 1./(2*60));
             vec2.mul(this.delta, this.delta, this.stepSize);
             vec2.set(this.curr, this.pos[0], this.pos[1]);
             console.log("change:", this.curr[0], this.curr[1]);
+            console.log(this.delta.x(), this.delta.y());
         }
 
         this.gl.useProgram(this.shdrProg);
-        this.gl.uniform2iv(this.screenDimsLoc, this.conf.screenDims);
-        const dn = this.conf.minMaxAvg[3*this.bin+2] - this.conf.minMaxAvg[3*this.bin];
-        const dx = this.conf.minMaxAvg[3*this.bin+2] - this.conf.minMaxAvg[3*this.bin+1];
-        this.rot = dn > Math.abs(dx) ? dn : dx;
+        this.gl.uniform2iv(this.screenDimsLoc, this.ctx.screenDims);
+        this.rot = 0;
         vec2.add(this.curr, this.curr, this.delta);
         this.gl.uniform3fv(this.posRotLoc, [this.curr[0], this.curr[1], this.rot]);
         this.gl.useProgram(null);

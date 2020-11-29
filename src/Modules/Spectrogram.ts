@@ -135,21 +135,21 @@ function makeColourTable(type: ColourTableType): Float32Array {
 }
 
 export default class Spectrogram implements Module {
-    gl: WebGLRenderingContext | null = null;
-    ctx: ModuleContext | null = null;
-    shdrProg: WebGLProgram | null = null;
+    gl: WebGLRenderingContext = null;
+    ctx: ModuleContext = null;
+    shdrProg: WebGLProgram = null;
     readonly name = "Spectrogram";
 
     private posLoc = -1;
-    private sampleTexLoc: WebGLUniformLocation | null = null;
-    private currRowLoc: WebGLUniformLocation | null = null;
-    private colourTableLoc: WebGLUniformLocation | null = null;
+    private sampleTexLoc: WebGLUniformLocation = null;
+    private currRowLoc: WebGLUniformLocation = null;
+    private colourTableLoc: WebGLUniformLocation = null;
     private colourTable = makeColourTable(ColourTableType.SPECTRUM);
 
     public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader): ModuleContext | null {
         this.gl = gl;
         this.ctx = makeContext(1024, 512, 60, FFTChannels.BIN);
-        this.ctx.delay = 30./60.;
+        this.ctx.delay = 33./60.;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);
 
         if(!this.shdrProg || !this.ctx.sampleTex.initialise(gl)) return null;
