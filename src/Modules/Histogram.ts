@@ -4,6 +4,7 @@ The first module, simple bars of the fft histogram
 
 import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Module";
 import {Program} from "../webGL/GL";
+import {Renderer} from "../webGL/Renderer";
 
 const fragShdrText = `
     #extension GL_OES_standard_derivatives : enable
@@ -47,6 +48,7 @@ const fragShdrText = `
 `;
 
 export default class Histogram implements Module {
+    rndr: Renderer;
     gl: WebGLRenderingContext | null = null;
     ctx: ModuleContext | null = null;
     shdrProg: WebGLProgram | null = null;
@@ -56,8 +58,11 @@ export default class Histogram implements Module {
     private sampleTexLoc: WebGLUniformLocation | null = null;
     private currRowLoc: WebGLUniformLocation | null = null;
 
-    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader): ModuleContext | null {
+    public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext | null {
+        this.rndr = rndr;
+        const gl = rndr.getContext();
         this.gl = gl;
+
         this.ctx = makeContext(512, 256, 20, FFTChannels.BIN | FFTChannels.MAX);
         this.ctx.delay = 3./60.;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);

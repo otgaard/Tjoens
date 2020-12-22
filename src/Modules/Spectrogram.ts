@@ -4,6 +4,7 @@ The first module, simple bars of the fft histogram
 
 import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Module";
 import {Program} from "../webGL/GL";
+import {Renderer} from "../webGL/Renderer";
 
 const fragShdrText = `
     #extension GL_OES_standard_derivatives : enable
@@ -59,7 +60,7 @@ const fragShdrText = `
         colour.a = 255.;
         return INV_BYTE * colour;
     }
-
+    
     vec4 getColour(in int id) {
         for(int i = 0; i != 9; ++i) {
             if(i == id) return unpackColour(colourTable[i]);
@@ -135,6 +136,7 @@ function makeColourTable(type: ColourTableType): Float32Array {
 }
 
 export default class Spectrogram implements Module {
+    rndr: Renderer;
     gl: WebGLRenderingContext = null;
     ctx: ModuleContext = null;
     shdrProg: WebGLProgram = null;
@@ -146,7 +148,11 @@ export default class Spectrogram implements Module {
     private colourTableLoc: WebGLUniformLocation = null;
     private colourTable = makeColourTable(ColourTableType.SPECTRUM);
 
-    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader): ModuleContext | null {
+    public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext | null {
+        this.rndr = rndr;
+        const gl = rndr.getContext();
+        this.gl = gl;
+
         this.gl = gl;
         this.ctx = makeContext(1024, 512, 60, FFTChannels.BIN);
         this.ctx.delay = 33./60.;
@@ -190,8 +196,6 @@ export default class Spectrogram implements Module {
         this.gl.uniform1i(this.sampleTexLoc, 0);
         this.gl.uniform1f(this.currRowLoc, this.ctx.sampleTex.getCurrentRow()/this.ctx.sampleSize);
         this.gl.uniform1fv(this.colourTableLoc, this.colourTable);
-        //this.gl.uniform1fv(this.binsLoc, this.conf.binBuffer);
-        //this.gl.uniform1fv(this.maxSamplesLoc, this.conf.minMaxAvg);
         this.gl.useProgram(null);
     }
 

@@ -5,6 +5,7 @@ Implementation of Raymarching routines as a module for rendering scenes in the v
 import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Module";
 import { Program } from "../webGL/GL";
 import { vec2f as vec2 } from "../maths/Vec2";
+import {Renderer} from "../webGL/Renderer";
 
 const fragShdrText = `
     #extension GL_OES_standard_derivatives : enable
@@ -57,6 +58,7 @@ const fragShdrText = `
 `;
 
 export default class Raymarch implements Module {
+    rndr: Renderer;
     gl: WebGLRenderingContext | null = null;
     shdrProg: WebGLProgram | null = null;
     ctx: ModuleContext | null = null;
@@ -66,7 +68,11 @@ export default class Raymarch implements Module {
     screenDimsLoc: WebGLUniformLocation | null = -1;
     posRotLoc: WebGLUniformLocation | null = -1;
 
-    public initialise(gl: WebGLRenderingContext, vtxShdr: WebGLShader): ModuleContext {
+    public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext {
+        this.rndr = rndr;
+        const gl = rndr.getContext();
+        this.gl = gl;
+
         this.gl = gl;
         this.ctx = makeContext(128, 64, 1, FFTChannels.BIN | FFTChannels.MAX);
         this.ctx.delay = 3./60.;

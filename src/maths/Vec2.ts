@@ -12,9 +12,10 @@ export class vec2f extends Float32Array {
         return new vec2f(vec2f.size);
     }
 
-    public static set(r: vec2f, u: number, v: number): void {
-        r[0] = u;
-        r[1] = v;
+    public static set(r: vec2f, x: number, y: number): vec2f {
+        r[0] = x;
+        r[1] = y;
+        return r;
     }
 
     public static copy(r: vec2f, u: vec2f | ArrayLike<number>): void {
@@ -64,6 +65,10 @@ export class vec2f extends Float32Array {
 
     public static dot(u: vec2f | ArrayLike<number>, v: vec2f | ArrayLike<number>): number {
         return u[0] * v[0] + u[1] * v[1];
+    }
+
+    public static dotScalar(u: vec2f | ArrayLike<number>, x: number, y: number): number {
+        return u[0] * x + u[1] * y;
     }
 
     public static lenSq(u: vec2f | ArrayLike<number>): number {

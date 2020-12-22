@@ -1,6 +1,7 @@
 /*
 These extensions will be preloaded in the Renderer on initialisation
  */
+
 const preload = [
     "ANGLE_instanced_arrays",
     "EXT_frag_depth",
@@ -28,11 +29,16 @@ export class Renderer {
         this.gl = el.getContext("webgl") as WebGLRenderingContext;
         if(!this.gl) throw("Failed to construct WebGL Rendering Context");
 
+        this.DPR = window.devicePixelRatio;
+
+        this.viewport = this.gl.getParameter(this.gl.VIEWPORT);
+        console.log(this.gl, this.viewport);
+
         this.availExt = this.gl.getSupportedExtensions();
         this.loadedExt = new Array<any>(this.availExt.length);
         this.loadedExt.fill(null);
 
-        const extLoad = preload.concat(extReq);
+        const extLoad = extReq ? preload.concat(extReq) : preload;
 
         for(let i = 0; i !== extLoad.length; ++i) {
             const idx = this.availExt.indexOf(extLoad[i]);
@@ -42,12 +48,18 @@ export class Renderer {
             }
             this.loadedExt[idx] = this.gl.getExtension(extLoad[i]);
         }
-
         console.log("Loaded Extensions:", this.loadedExt.map((v, i) => v ? this.availExt[i] : null));
+
+        this.gl.pixelStorei(this.gl.PACK_ALIGNMENT, 1);
+        this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
     }
 
     public getElement(): HTMLCanvasElement {
         return this.el;
+    }
+
+    public getContext(): WebGLRenderingContext {
+        return this.gl;
     }
 
     public getViewport(): Int32Array {
@@ -63,5 +75,9 @@ export class Renderer {
         return this.DPR;
     }
 
+    public getExtension(name: string): any {
+        const idx = this.availExt.indexOf(name);
+        return idx === -1 ? null : this.loadedExt[idx];
+    }
 
 }

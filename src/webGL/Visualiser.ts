@@ -1,10 +1,12 @@
 import {clamp} from "../maths/functions";
 import requestAnimFrame from "./requestAnimFrame";
 import {Shader} from "./GL";
-import {defaultContext, FFTChannels, Module, ModuleContext, ModuleValue} from "../Modules/Module";
+import {defaultContext, FFTChannels, isSet, Module, ModuleContext, ModuleValue} from "../Modules/Module";
 //import Raymarch from "../Modules/Raymarch";
 import Histogram from "../Modules/Histogram";
 import Spectrogram from "../Modules/Spectrogram";
+import Particles from "../Modules/Particles";
+import {Renderer} from "./Renderer";
 
 enum Viewport {
     X,
@@ -36,10 +38,12 @@ const vtxShdr = `
 const ModuleIndex = {
     "histogram": Histogram,
     "spectrogram": Spectrogram,
+    "particles": Particles,
 };
 
 export default class Visualiser {
     private el: HTMLCanvasElement;
+    private rndr: Renderer;
     private gl: WebGLRenderingContext;
     private viewport: Int32Array = new Int32Array(4);
     readonly DPR: number;
@@ -64,13 +68,9 @@ export default class Visualiser {
     public constructor(el: HTMLCanvasElement) {
         this.el = el;
 
-        this.gl = el.getContext("webgl") as WebGLRenderingContext;
-        if(!this.gl) throw("Failed to construct WebGL Rendering Context");
-
-        console.log("Getting Supported Extensions:", this.gl.getSupportedExtensions());
-
-        this.DPR = window.devicePixelRatio;
-        this.onResize();
+        this.rndr = new Renderer(el);
+        this.gl = this.rndr.getContext();
+        this.DPR = this.rndr.getDPR();
 
         if(!this.initialise()) {
             throw("Failed to initialise WebGL Renderer");
@@ -154,7 +154,7 @@ export default class Visualiser {
         // @ts-ignore
         const mod = new (ModuleIndex[module])();
         if(mod && this.vShdr) {
-            const ctx = mod.initialise(this.gl, this.vShdr);
+            const ctx = mod.initialise(this.rndr, this.vShdr);
             if(mod && ctx) {
                 this.module = mod;
                 this.ctx = ctx;
@@ -196,22 +196,22 @@ export default class Visualiser {
             const bufIdx = ch * i;
             let c = 0;
 
-            if(ctx.fftChannels & FFTChannels.BIN) {
+            if(isSet(ctx.fftChannels, FFTChannels.BIN)) {
                 ctx.dataBuffer[bufIdx] = v;
                 c += 1;
             }
 
-            if(ctx.fftChannels & FFTChannels.MIN) {
+            if(isSet(ctx.fftChannels, FFTChannels.MIN)) {
                 ctx.dataBuffer[bufIdx+c] = mma[0];
                 c += 1;
             }
 
-            if(ctx.fftChannels & FFTChannels.MAX) {
+            if(isSet(ctx.fftChannels, FFTChannels.MAX)) {
                 ctx.dataBuffer[bufIdx+c] = mma[1];
                 c += 1;
             }
 
-            if(ctx.fftChannels & FFTChannels.AVG) {
+            if(isSet(ctx.fftChannels, FFTChannels.AVG)) {
                 ctx.dataBuffer[bufIdx+c] = mma[2];
             }
         }
@@ -249,6 +249,7 @@ export default class Visualiser {
     }
 
     public onResize = (): void => {
+        console.log("EL:", this.el.width, this.el.height, this.el.offsetWidth, this.el.offsetHeight);
         this.el.width = this.el.offsetWidth * this.DPR;
         this.el.height = this.el.offsetHeight * this.DPR;
         this.viewport[2] = this.el.width;

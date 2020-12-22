@@ -3,6 +3,7 @@ A simple module structure for creating WebGL resources, analysis, update, and re
 */
 
 import {RingTexture} from "../webGL/RingTexture";
+import {Renderer} from "../webGL/Renderer";
 
 export interface ModuleContext {
     gain: number;
@@ -23,6 +24,7 @@ export interface ModuleContext {
 export const FFT_SIZE = 1024;
 export const BIN_SIZE = 512;
 export const SAMPLE_FRAMES = 60;
+export const DEFAULT_DELAY = 3./60.;    // Seems the closest over a number of machines - move to config later
 
 export enum FFTChannels {
     BIN = 1 << 0,
@@ -32,12 +34,16 @@ export enum FFTChannels {
     ALL = 15,
 }
 
+export function isSet(value: number, bit: number): boolean {
+    return (value & bit) === bit;
+}
+
 function calculateChannelCount(fftCh: FFTChannels): number {
     let ch = 0;
-    ch += fftCh & FFTChannels.BIN ? 1 : 0;
-    ch += fftCh & FFTChannels.MIN ? 1 : 0;
-    ch += fftCh & FFTChannels.MAX ? 1 : 0;
-    ch += fftCh & FFTChannels.AVG ? 1 : 0;
+    ch += isSet(fftCh, FFTChannels.BIN) ? 1 : 0;
+    ch += isSet(fftCh, FFTChannels.MIN) ? 1 : 0;
+    ch += isSet(fftCh, FFTChannels.MAX) ? 1 : 0;
+    ch += isSet(fftCh, FFTChannels.AVG) ? 1 : 0;
     return ch;
 }
 
@@ -86,7 +92,7 @@ export interface Module {
     shdrProg: WebGLProgram | null;
     name: string;
 
-    initialise: (gl: WebGLRenderingContext, vtxShdr: WebGLShader) => ModuleContext | null;
+    initialise: (rndr: Renderer, vtxShdr: WebGLShader) => ModuleContext | null;
     destroy: () => void;
 
     updateContext: (value: ModuleValue) => void;

@@ -121,6 +121,7 @@ export default function Player() {
                     >
                         <MenuItem value="histogram">Histogram</MenuItem>
                         <MenuItem value="spectrogram">Spectrogram</MenuItem>
+                        {/*<MenuItem value="particles">Particles</MenuItem>*/}
                     </Select>
                 </Grid>
 
