@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import App from "./App";
+import App from "./UI/App";
 import { StylesProvider } from "@material-ui/core/styles";
 import {CssBaseline, MuiThemeProvider} from "@material-ui/core";
 import {Provider} from "react-redux";

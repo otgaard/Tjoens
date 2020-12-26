@@ -4,6 +4,7 @@ A simple module structure for creating WebGL resources, analysis, update, and re
 
 import {RingTexture} from "../webGL/RingTexture";
 import {Renderer} from "../webGL/Renderer";
+import {isSet} from "../maths/functions";
 
 export interface ModuleContext {
     gain: number;
@@ -32,10 +33,6 @@ export enum FFTChannels {
     MAX = 1 << 2,
     AVG = 1 << 3,
     ALL = 15,
-}
-
-export function isSet(value: number, bit: number): boolean {
-    return (value & bit) === bit;
 }
 
 function calculateChannelCount(fftCh: FFTChannels): number {

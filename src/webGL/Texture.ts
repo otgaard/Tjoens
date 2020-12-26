@@ -16,15 +16,35 @@ export class Texture {
     private format: GLenum;
     private dataType: GLenum;
     private mipmap: boolean = false;
-    private wrapMode: [GLenum, GLenum] = [WebGLRenderingContext.CLAMP_TO_EDGE, WebGLRenderingContext.CLAMP_TO_EDGE];
-    private filter: [GLenum, GLenum] = [WebGLRenderingContext.NEAREST, WebGLRenderingContext.NEAREST];
+    private wrapMode: [GLenum, GLenum] = [
+        WebGLRenderingContext.CLAMP_TO_EDGE,
+        WebGLRenderingContext.CLAMP_TO_EDGE
+    ];
+    private filter: [GLenum, GLenum] = [
+        WebGLRenderingContext.NEAREST,
+        WebGLRenderingContext.NEAREST
+    ];
 
-    public constructor(rndr: Renderer, width: number, height: number, format: GLenum, type: GLenum) {
+    public constructor(
+        rndr: Renderer,
+        width: number,
+        height: number,
+        format: GLenum=WebGLRenderingContext.RGBA,
+        dataType: GLenum=WebGLRenderingContext.UNSIGNED_BYTE
+    ) {
         this.rndr = rndr;
         this.width = width;
         this.height = height;
         this.format = format;
-        this.dataType = type;
+        this.dataType = dataType;
+    }
+
+    public getResource(): WebGLTexture {
+        return this.resource;
+    }
+
+    public getFormat(): GLenum {
+        return this.format;
     }
 
     public setWrapModeS(value: GLenum, update: boolean=false, bind: boolean=true): void {
@@ -63,8 +83,7 @@ export class Texture {
         }
     }
 
-    // WebGL 1 textures should be reallocated
-    public initialise(data: ArrayBufferView=null, realloc: boolean=true): boolean {
+    public initialise(data: ArrayBufferView=null, realloc: boolean=false): boolean {
         this.gl = this.rndr.getContext();
 
         if(!this.resource) {
@@ -72,8 +91,8 @@ export class Texture {
             const colorExt = this.rndr.getExtension("WEBGL_color_buffer_float");
             const hasFloatTex = this.rndr.getExtension("OES_texture_float");
 
-            if(this.format === this.gl.DEPTH_COMPONENT16 || this.format === this.gl.DEPTH_COMPONENT ||
-                this.format === this.gl.DEPTH_STENCIL && !depthExt) {
+            if(!depthExt && (this.format === this.gl.DEPTH_COMPONENT16 || this.format === this.gl.DEPTH_COMPONENT ||
+                this.format === this.gl.DEPTH_STENCIL)) {
                 console.error("WEBGL_depth_texture extension not available");
                 return false;
             }
@@ -83,10 +102,12 @@ export class Texture {
                 return false;
             }
         }
+
         if(this.resource && realloc) {
             this.gl.deleteTexture(this.resource);
             this.resource = null;
         }
+
         if(!this.resource) this.resource = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.resource);
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.format, this.width, this.height, 0, this.format, this.dataType, data);

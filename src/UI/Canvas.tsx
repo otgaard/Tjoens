@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import makeStyles from "@material-ui/core/styles/makeStyles";
-import Visualiser from "./webGL/Visualiser";
-import {AppState} from "./reducer";
+import Visualiser from "../webGL/Visualiser";
+import {AppState} from "../reducer";
 import {useSelector} from "react-redux";
 
 const useStyles = makeStyles(() => ({
@@ -35,7 +35,9 @@ export default function Canvas(props: CanvasProps) {
     useEffect(() => {
         if(canvasRef.current != null) {
             const ref = canvasRef.current;
-            setRenderer(new Visualiser(ref));
+            const visualiser = new Visualiser(ref);
+            setRenderer(visualiser);
+            visualiser.setModule(props.module);
 
             return function destroy() {
                 renderer && renderer.unload();

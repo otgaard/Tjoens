@@ -4,10 +4,13 @@ These extensions will be preloaded in the Renderer on initialisation
 
 const preload = [
     "ANGLE_instanced_arrays",
+    "EXT_blend_minmax",
     "EXT_frag_depth",
     "OES_standard_derivatives",
     "OES_texture_float",
+    "OES_element_index_uint",
     "OES_texture_half_float",
+    "OES_vertex_array_object",
     "WEBGL_color_buffer_float",
     "WEBGL_depth_texture",
     "WEBGL_draw_buffers",
@@ -50,8 +53,8 @@ export class Renderer {
         }
         console.log("Loaded Extensions:", this.loadedExt.map((v, i) => v ? this.availExt[i] : null));
 
-        this.gl.pixelStorei(this.gl.PACK_ALIGNMENT, 1);
-        this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
+        this.gl.pixelStorei(this.gl.PACK_ALIGNMENT, 4);
+        this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 4);
     }
 
     public getElement(): HTMLCanvasElement {
@@ -66,9 +69,14 @@ export class Renderer {
         return this.viewport;
     }
 
-    public setViewport(x: number, y: number, width: number, height: number): void {
-        this.viewport.set([x, y, width, height]);
-        this.gl.viewport(x, y, width, height);
+    public setViewport(x: number | Int32Array, y?: number, width?: number, height?: number): void {
+        if(typeof x === "number") {
+            this.viewport.set([x, y, width, height]);
+            this.gl.viewport(x, y, width, height);
+        } else {
+            this.viewport.set(x as Int32Array);
+            this.gl.viewport(x[0], x[1], x[2], x[3]);
+        }
     }
 
     public getDPR(): number {
@@ -79,5 +87,4 @@ export class Renderer {
         const idx = this.availExt.indexOf(name);
         return idx === -1 ? null : this.loadedExt[idx];
     }
-
 }

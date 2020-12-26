@@ -1,7 +1,7 @@
-import {clamp} from "../maths/functions";
+import {clamp, isSet} from "../maths/functions";
 import requestAnimFrame from "./requestAnimFrame";
 import {Shader} from "./GL";
-import {defaultContext, FFTChannels, isSet, Module, ModuleContext, ModuleValue} from "../Modules/Module";
+import {defaultContext, FFTChannels, Module, ModuleContext, ModuleValue} from "../Modules/Module";
 //import Raymarch from "../Modules/Raymarch";
 import Histogram from "../Modules/Histogram";
 import Spectrogram from "../Modules/Spectrogram";
@@ -118,12 +118,12 @@ export default class Visualiser {
             return false;
         }
 
+        this.onResize();
+
         this.setModule("histogram");
 
         // We only use one buffer right now, no need to rebind
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbuf);
-
-        this.onResize();
 
         this.animate = () => {
             // @ts-ignore
@@ -256,9 +256,10 @@ export default class Visualiser {
         this.viewport[3] = this.el.height;
         this.ctx.screenDims[0] = this.el.width;
         this.ctx.screenDims[1] = this.el.height;
-        if(this.module) this.module.updateContext(ModuleValue.SCREENDIMS);
-        console.log(this.el.width, this.el.height);
-        this.gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+        if(this.module)this.module.updateContext(ModuleValue.SCREENDIMS);
+        //console.log(th is.el.width, this.el.height);
+        //this.gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+        this.rndr.setViewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
     };
 
     // Note: We flip the coordinate space to the default GL space, origin bottom-left

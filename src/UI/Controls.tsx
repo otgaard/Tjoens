@@ -10,7 +10,7 @@ import {useDispatch, useSelector} from "react-redux";
 import {AppState, nextTrack, PlayState, prevTrack, setPlayState} from "../reducer";
 import styled from "styled-components";
 import {purple} from "@material-ui/core/colors";
-import UploadDialog from "../UploadDialog";
+import UploadDialog from "./UploadDialog";
 import PlayList from "./PlayList";
 
 interface BCGProps {

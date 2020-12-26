@@ -11,3 +11,7 @@ export function gain(val: number, gain: number): number {
         ? .5*bias(2.*val, gain)
         : .5*bias(2.*val - 1., 1. - gain) + .5;
 }
+
+export function isSet(value: number, bit: number): boolean {
+    return (value & bit) === bit;
+}

@@ -1,12 +1,12 @@
 import Grid from "@material-ui/core/Grid";
 import Canvas from "./Canvas";
 import React, {useEffect, useState} from "react";
-import Audio from "./webAudio/Audio";
+import Audio from "../webAudio/Audio";
 import {useDispatch, useSelector} from "react-redux";
-import {AppState, nextTrack, PlayState, resetTrack, setAudioContext, setPlayState} from "./reducer";
-import Controls from "./UI/Controls";
+import {AppState, nextTrack, PlayState, resetTrack, setAudioContext, setPlayState} from "../reducer";
+import Controls from "./Controls";
 import {Typography} from "@material-ui/core";
-import {FFT_SIZE} from "./Modules/Module";
+import {FFT_SIZE} from "../Modules/Module";
 import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
@@ -36,7 +36,7 @@ export const isSafari = window.safari !== undefined;
 
 export default function Player() {
     const [gain, setGain] = useState(.5);
-    const [module, setModule] = useState("histogram");
+    const [module, setModule] = useState("particles");
 
     const audioElement = useSelector((state: AppState) => state.audioElement);
     const playState = useSelector<AppState, PlayState>(state => state.playState);
@@ -121,7 +121,7 @@ export default function Player() {
                     >
                         <MenuItem value="histogram">Histogram</MenuItem>
                         <MenuItem value="spectrogram">Spectrogram</MenuItem>
-                        {/*<MenuItem value="particles">Particles</MenuItem>*/}
+                        <MenuItem value="particles">Particles</MenuItem>
                     </Select>
                 </Grid>
 

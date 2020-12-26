@@ -15,33 +15,54 @@ export class Renderbuffer {
         this.format = format;
     }
 
+    public getResource(): WebGLRenderbuffer {
+        return this.resource;
+    }
+
+    public getFormat(): GLenum {
+        return this.format;
+    }
+
     public initialise(realloc: boolean=false): boolean {
         this.gl = this.rndr.getContext();
 
-        const depthExt = this.rndr.getExtension("WEBGL_depth_texture");
-        const colorExt = this.rndr.getExtension("WEBGL_color_buffer_float");
-        const hasFloatTex = this.rndr.getExtension("OES_texture_float");
+        if(!this.resource) {
+            const depthExt = this.rndr.getExtension("WEBGL_depth_texture");
+            const colorExt = this.rndr.getExtension("WEBGL_color_buffer_float");
+            const hasFloatTex = this.rndr.getExtension("OES_texture_float");
 
-        if(this.format === this.gl.DEPTH_COMPONENT16 || this.format === this.gl.DEPTH_COMPONENT ||
-            this.format === this.gl.DEPTH_STENCIL && !depthExt) {
-            console.error("WEBGL_depth_texture extension not available");
-            return false;
-        }
+            console.log("depthExt:", depthExt, this.format === this.gl.DEPTH_COMPONENT);
 
-        if(colorExt && (this.format === colorExt.RGBA32F_EXT || this.format === colorExt.RGB32F_EXT) && !hasFloatTex) {
-            console.error("WEBGL_color_buffer_float or OES_texture_float extensions not available");
-            return false;
+            if(!depthExt && (this.format === this.gl.DEPTH_COMPONENT16 || this.format === this.gl.DEPTH_COMPONENT ||
+                this.format === this.gl.DEPTH_STENCIL)) {
+                console.error("WEBGL_depth_texture extension not available");
+                return false;
+            }
+
+            if(colorExt && (this.format === colorExt.RGBA32F_EXT || this.format === colorExt.RGB32F_EXT) && !hasFloatTex) {
+                console.error("WEBGL_color_buffer_float or OES_texture_float extensions not available");
+                return false;
+            }
         }
 
         if(this.resource && realloc) {
             this.gl.deleteRenderbuffer(this.resource);
             this.resource = null;
         }
+
         if(!this.resource) this.resource = this.gl.createRenderbuffer();
         this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.resource);
         this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.format, this.width, this.height);
         this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, null);
 
         return this.gl.getError() === this.gl.NO_ERROR;
+    }
+
+    public bind() {
+        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.resource);
+    }
+
+    public release() {
+        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, null);
     }
 }

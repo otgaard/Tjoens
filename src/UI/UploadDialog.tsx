@@ -6,7 +6,7 @@ import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import {enqueueFiles} from "./reducer";
+import {enqueueFiles} from "../reducer";
 import IconButton from "@material-ui/core/IconButton";
 import PlayListAdd from "@material-ui/icons/PlaylistAdd";
 

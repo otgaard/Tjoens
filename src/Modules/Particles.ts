@@ -2,6 +2,16 @@ import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Mo
 import {Program} from "../webGL/GL";
 import {Texture} from "../webGL/Texture";
 import {Renderer} from "../webGL/Renderer";
+import {Framebuffer, TargetOutput} from "../webGL/Framebuffer";
+
+const simShdrPass = `
+precision highp float;
+varying vec2 texcoord;
+uniform sampler2D inputTex;
+void main() {
+    gl_FragColor = vec4(int(texcoord.x < .5), int(texcoord.y < .5), 0., 1.);
+}
+`;
 
 const fragShdrText = `
 #extension GL_OES_standard_derivatives : enable
@@ -13,21 +23,24 @@ void main() {
 }
 `;
 
-const checkerData = [
-    0, 0, 0, 255, 255, 255,
-    255, 255, 255, 0, 0, 0
-];
+const checkerData = new Uint8Array([
+    0, 0, 0, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 0, 0, 0, 255,
+]);
 
 export default class Particles implements Module {
     rndr: Renderer;
     gl: WebGLRenderingContext = null;
     ctx: ModuleContext = null;
     shdrProg: WebGLProgram = null;
+    simProg: WebGLProgram = null;
     readonly name = "Particles";
 
     private posLoc = -1;
     private checker: Texture;
     private checkerTexLoc: WebGLUniformLocation;
+
+    private framebuffer: Framebuffer;
 
     public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext | null {
         this.rndr = rndr;
@@ -38,6 +51,12 @@ export default class Particles implements Module {
         this.ctx.delay = 3./60.;
         this.shdrProg = Program.create(gl, vtxShdr, fragShdrText);
         if(!this.shdrProg || !this.ctx.sampleTex.initialise(gl)) return null;
+
+        this.simProg = Program.create(gl, vtxShdr, simShdrPass);
+        if(!this.simProg) {
+            console.log("Sim shader compile failed");
+            return null;
+        }
 
         gl.useProgram(this.shdrProg);
 
@@ -52,8 +71,28 @@ export default class Particles implements Module {
             return null;
         }
 
-        this.checker = new Texture(rndr, 2, 2, gl.RGB, gl.UNSIGNED_BYTE);
-        this.checker.initialise(new Uint8Array(checkerData));
+        this.checker = new Texture(rndr, 2, 2, gl.RGBA, gl.UNSIGNED_BYTE);
+        this.checker.initialise(checkerData);
+
+        this.framebuffer = new Framebuffer(
+            this.rndr,
+            TargetOutput.TO_COLOUR_TEXTURE | TargetOutput.TO_DEPTH_NONE,
+        );
+        if(!this.framebuffer.initialise()) {
+            console.error("failed to initialise framebuffer");
+            return null;
+        } else {
+            console.log("Initialised Framebuffer");
+        }
+
+        // See if it's working
+        this.framebuffer.bind();
+        this.gl.enableVertexAttribArray(this.posLoc);
+        this.gl.vertexAttribPointer(this.posLoc, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.useProgram(this.simProg);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+        this.gl.useProgram(null);
+        this.framebuffer.release();
 
         return this.ctx;
     }
@@ -78,19 +117,16 @@ export default class Particles implements Module {
     public draw(): void {
         if(!this.gl || !this.ctx) return;
 
-        this.gl.clearColor(1., 0., 0., 1.);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
         this.gl.enableVertexAttribArray(this.posLoc);
         this.gl.vertexAttribPointer(this.posLoc, 2, this.gl.FLOAT, false, 0, 0);
         this.gl.useProgram(this.shdrProg);
         //this.ctx.sampleTex.bind();
         this.checker.bind(0);
+        (this.framebuffer.getColourTarget(0) as Texture).bind(0);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+        (this.framebuffer.getColourTarget(0) as Texture).bind(0);
         this.checker.release(0);
         //this.ctx.sampleTex.release();
         this.gl.useProgram(null);
-
-        console.log(this.gl.getError());
     }
 }
