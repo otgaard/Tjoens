@@ -29,7 +29,15 @@ export class Renderer {
 
     public constructor(el: HTMLCanvasElement, extReq?: Array<string>) {
         this.el = el;
-        this.gl = el.getContext("webgl") as WebGLRenderingContext;
+
+        const options = {
+            alpha: true,
+            antialias: false,
+            depth: true,
+            stencil: false,
+        };
+
+        this.gl = el.getContext("webgl", options) as WebGLRenderingContext;
         if(!this.gl) throw("Failed to construct WebGL Rendering Context");
 
         this.DPR = window.devicePixelRatio;
@@ -52,9 +60,10 @@ export class Renderer {
             this.loadedExt[idx] = this.gl.getExtension(extLoad[i]);
         }
         console.log("Loaded Extensions:", this.loadedExt.map((v, i) => v ? this.availExt[i] : null));
-
+        /* defaults
         this.gl.pixelStorei(this.gl.PACK_ALIGNMENT, 4);
         this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 4);
+        */
     }
 
     public getElement(): HTMLCanvasElement {
@@ -71,8 +80,8 @@ export class Renderer {
 
     public setViewport(x: number | Int32Array, y?: number, width?: number, height?: number): void {
         if(typeof x === "number") {
-            this.viewport.set([x, y, width, height]);
-            this.gl.viewport(x, y, width, height);
+            this.viewport.set([x as number, y, width, height]);
+            this.gl.viewport(x as number, y, width, height);
         } else {
             this.viewport.set(x as Int32Array);
             this.gl.viewport(x[0], x[1], x[2], x[3]);

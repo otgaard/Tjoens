@@ -6,19 +6,19 @@ import {isSet} from "../maths/functions";
 export type RenderTarget = Renderbuffer | Texture;
 
 export enum TargetOutput {
-    TO_COLOUR_NONE = 1 << 0,
-    TO_COLOUR_TEXTURE = 1 << 1,
-    TO_COLOUR_RENDERBUFFER = 1 << 2,
-    TO_DEPTH_NONE = 1 << 3,
-    TO_DEPTH_TEXTURE = 1 << 4,
-    TO_DEPTH_RENDERBUFFER = 1 << 5,
+    COLOUR_NONE = 1 << 0,
+    COLOUR_TEXTURE = 1 << 1,
+    COLOUR_RENDERBUFFER = 1 << 2,
+    DEPTH_NONE = 1 << 3,
+    DEPTH_TEXTURE = 1 << 4,
+    DEPTH_RENDERBUFFER = 1 << 5,
 }
 
 export interface FramebufferConfig {
     width: number;
     height: number;
-    count?: number;             // Number of Buffers
-    colourFormat?: GLenum;      // Format of colour buffers
+    count?: number;             // Number of Colour Buffers
+    colourFormat?: GLenum;
     colourDatatype?: GLenum;
     depthFormat?: GLenum;
     depthDatatype?: GLenum;
@@ -68,18 +68,18 @@ export class Framebuffer {
         this.conf.count = (conf && conf.count) || 1;
         console.log("this.conf:", this.conf);
 
-        const colourTex = isSet(targets, TargetOutput.TO_COLOUR_TEXTURE);
-        const colourBuf = isSet(targets, TargetOutput.TO_COLOUR_RENDERBUFFER);
+        const colourTex = isSet(targets, TargetOutput.COLOUR_TEXTURE);
+        const colourBuf = isSet(targets, TargetOutput.COLOUR_RENDERBUFFER);
 
         if(!conf || !conf.colourFormat) {
             if(colourTex) this.conf.colourFormat = WebGLRenderingContext.RGBA;
             if(colourBuf) this.conf.colourFormat = WebGLRenderingContext.RGBA4;
         } else
-            this.conf.colourFormat = isSet(targets, TargetOutput.TO_COLOUR_NONE) ? null : conf.colourFormat;
+            this.conf.colourFormat = isSet(targets, TargetOutput.COLOUR_NONE) ? null : conf.colourFormat;
 
         // Note that COMPONENT16 is used for renderbuffers, COMPONENT for texture
-        const depthTex = isSet(targets, TargetOutput.TO_DEPTH_TEXTURE);
-        const depthBuf = isSet(targets, TargetOutput.TO_DEPTH_RENDERBUFFER);
+        const depthTex = isSet(targets, TargetOutput.DEPTH_TEXTURE);
+        const depthBuf = isSet(targets, TargetOutput.DEPTH_RENDERBUFFER);
 
         if(!conf || !conf.colourDatatype) this.conf.colourDatatype = WebGLRenderingContext.UNSIGNED_BYTE;
         else this.conf.colourDatatype = conf.colourDatatype;
@@ -180,13 +180,13 @@ export class Framebuffer {
             console.log("Initialising Colour Target");
             const att = this.drawBufExt ? this.drawBufExt.COLOR_ATTACHMENT0_WEBGL : this.gl.COLOR_ATTACHMENT0;
 
-            if(isSet(this.targets, TargetOutput.TO_COLOUR_TEXTURE)) {
+            if(isSet(this.targets, TargetOutput.COLOUR_TEXTURE)) {
                 console.log("TEXTURE");
                 const tex = new Texture(this.rndr, this.conf.width, this.conf.height, this.conf.colourFormat, this.gl.UNSIGNED_BYTE);
                 if (!tex.initialise()) return false;
                 this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, att, this.gl.TEXTURE_2D, tex.getResource(), 0);
                 this.colourTargets.push(tex);
-            } else if(isSet(this.targets, TargetOutput.TO_COLOUR_RENDERBUFFER)) {
+            } else if(isSet(this.targets, TargetOutput.COLOUR_RENDERBUFFER)) {
                 console.log("RENDERBUFFER");
                 const buf = new Renderbuffer(this.rndr, this.conf.width, this.conf.height, this.conf.colourFormat);
                 if(!buf.initialise()) return false;
@@ -218,13 +218,13 @@ export class Framebuffer {
             }
 
             const att = this.conf.depthFormat === this.gl.DEPTH_STENCIL ? this.gl.DEPTH_STENCIL_ATTACHMENT : this.gl.DEPTH_ATTACHMENT;
-            if(isSet(this.targets, TargetOutput.TO_DEPTH_TEXTURE)) {
+            if(isSet(this.targets, TargetOutput.DEPTH_TEXTURE)) {
                 console.log("TEXTURE");
                 const tex = new Texture(this.rndr, this.conf.width, this.conf.height, this.conf.depthFormat, dataType);
                 if(!tex.initialise()) return false;
                 this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, att, this.gl.TEXTURE_2D, tex.getResource(), 0);
                 this.depthTarget = tex;
-            } else if(isSet(this.targets, TargetOutput.TO_DEPTH_RENDERBUFFER)) {
+            } else if(isSet(this.targets, TargetOutput.DEPTH_RENDERBUFFER)) {
                 console.log("RENDERBUFFER");
                 const buf = new Renderbuffer(this.rndr, this.conf.width, this.conf.height, this.conf.depthFormat);
                 if(!buf.initialise()) return false;

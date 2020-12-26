@@ -154,6 +154,9 @@ export default class Visualiser {
         // @ts-ignore
         const mod = new (ModuleIndex[module])();
         if(mod && this.vShdr) {
+            // Do this whenever we change the module for screen-space shaders
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbuf);
+
             const ctx = mod.initialise(this.rndr, this.vShdr);
             if(mod && ctx) {
                 this.module = mod;
@@ -259,7 +262,7 @@ export default class Visualiser {
         if(this.module)this.module.updateContext(ModuleValue.SCREENDIMS);
         //console.log(th is.el.width, this.el.height);
         //this.gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
-        this.rndr.setViewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+        this.rndr.setViewport(this.viewport);
     };
 
     // Note: We flip the coordinate space to the default GL space, origin bottom-left
