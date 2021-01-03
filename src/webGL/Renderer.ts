@@ -2,6 +2,7 @@
 These extensions will be preloaded in the Renderer on initialisation
  */
 
+/* These are WebGL 1 extensions so we don't bother anymore
 const preload = [
     "ANGLE_instanced_arrays",
     "EXT_blend_minmax",
@@ -16,10 +17,15 @@ const preload = [
     "WEBGL_draw_buffers",
     "EXT_texture_filter_anisotropic",
 ];
+*/
+
+const preload: string[] = [
+    "EXT_color_buffer_float",
+];
 
 export class Renderer {
     public el: HTMLCanvasElement;
-    public gl: WebGLRenderingContext;
+    public gl: WebGL2RenderingContext;
 
     readonly availExt: Array<string>;
     private loadedExt: Array<any>;
@@ -37,7 +43,7 @@ export class Renderer {
             stencil: false,
         };
 
-        this.gl = el.getContext("webgl", options) as WebGLRenderingContext;
+        this.gl = el.getContext("webgl2", options) as WebGL2RenderingContext;
         if(!this.gl) throw("Failed to construct WebGL Rendering Context");
 
         this.DPR = window.devicePixelRatio;
@@ -46,6 +52,7 @@ export class Renderer {
         console.log(this.gl, this.viewport);
 
         this.availExt = this.gl.getSupportedExtensions();
+        console.log("availableExtensions:", this.availExt);
         this.loadedExt = new Array<any>(this.availExt.length);
         this.loadedExt.fill(null);
 
@@ -60,7 +67,10 @@ export class Renderer {
             this.loadedExt[idx] = this.gl.getExtension(extLoad[i]);
         }
         console.log("Loaded Extensions:", this.loadedExt.map((v, i) => v ? this.availExt[i] : null));
-        /* defaults
+
+        /*
+        defaults
+
         this.gl.pixelStorei(this.gl.PACK_ALIGNMENT, 4);
         this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 4);
         */
@@ -70,7 +80,7 @@ export class Renderer {
         return this.el;
     }
 
-    public getContext(): WebGLRenderingContext {
+    public getContext(): WebGL2RenderingContext {
         return this.gl;
     }
 

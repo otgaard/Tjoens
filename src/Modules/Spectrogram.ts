@@ -6,9 +6,7 @@ import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Mo
 import {Program} from "../webGL/GL";
 import {Renderer} from "../webGL/Renderer";
 
-const fragShdrText = `
-    #extension GL_OES_standard_derivatives : enable
-
+const fragShdrText = `#version 300 es
     precision highp float;
     
     #define BIN_SIZE 512
@@ -21,7 +19,10 @@ const fragShdrText = `
     uniform sampler2D sampleTex;
     uniform float currRow;
     uniform float colourTable[9];
-    varying vec2 texcoord;
+    
+    in vec2 texcoord;
+    
+    out vec4 fragColour;
     
     /*
     // This is required to lookup values dynamically
@@ -61,13 +62,15 @@ const fragShdrText = `
         return INV_BYTE * colour;
     }
     
+    /*
     vec4 getColour(in int id) {
         for(int i = 0; i != 9; ++i) {
             if(i == id) return unpackColour(colourTable[i]);
         }
         return vec4(0.);
     }
-
+    */
+    
     void main() {
     /*
         int bin = int(texcoord.x*float(BIN_SIZE));
@@ -87,7 +90,7 @@ const fragShdrText = `
         //gl_FragColor = mix(gl_FragColor, emit * vec4(.3, .3, .3, 1.), step(abs(texcoord.x - float(bin)*INV_BIN), fwidth(texcoord.x)));  
         
         //float delta = 3.*(maxSample - val);
-        gl_FragColor = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
+        fragColour = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/val), 1.);
         vec4 col = vec4(maxSample, 0., 1. - maxSample, 1.);
         gl_FragColor = mix(col, gl_FragColor, seg(texcoord, A, B));
         gl_FragColor = mix(col, gl_FragColor, seg(texcoord, B, C));
@@ -95,12 +98,13 @@ const fragShdrText = `
     */
         
         vec2 wrapCoord = vec2(texcoord.x, fract(texcoord.y + currRow));
-        float value = texture2D(sampleTex, wrapCoord).r;
+        float value = texture(sampleTex, wrapCoord).r;
         float val = clamp(value * 9., 0., 8.);
         int bin = int(val);
         int binp1 = int(min(floor(val+1.), 8.));
-        gl_FragColor = mix(getColour(bin), getColour(binp1), val - float(bin));
-        gl_FragColor = mix(vec4(1.), gl_FragColor, seg(texcoord, vec2(0., .5), vec2(1., .5)));   
+        //fragColour = mix(getColour(bin), getColour(binp1), val - float(bin));
+        fragColour = mix(unpackColour(colourTable[bin]), unpackColour(colourTable[binp1]), val - float(bin));
+        fragColour = mix(vec4(1.), fragColour, seg(texcoord, vec2(0., .5), vec2(1., .5)));   
     }
 `;
 
@@ -148,7 +152,8 @@ export default class Spectrogram implements Module {
     private colourTableLoc: WebGLUniformLocation = null;
     private colourTable = makeColourTable(ColourTableType.SPECTRUM);
 
-    public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext | null {
+    public initialise(rndr: Renderer, vtxShdr: WebGLShader, vbuf: WebGLBuffer): ModuleContext | null {
+        (vbuf);
         this.rndr = rndr;
         const gl = rndr.getContext();
         this.gl = gl;

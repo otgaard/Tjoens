@@ -6,9 +6,8 @@ import {FFTChannels, makeContext, Module, ModuleContext, ModuleValue} from "./Mo
 import {Program} from "../webGL/GL";
 import {Renderer} from "../webGL/Renderer";
 
-const fragShdrText = `
-    #extension GL_OES_standard_derivatives : enable
-
+const fragShdrText = `#version 300 es
+    
     precision highp float;
     
     #define BIN_SIZE 256
@@ -16,7 +15,10 @@ const fragShdrText = `
     
     uniform sampler2D sampleTex;
     uniform float currRow;
-    varying vec2 texcoord;
+    
+    in vec2 texcoord;
+    
+    out vec4 fragColour; 
     
     float seg(vec2 p, vec2 a, vec2 b) {
         vec2 PA = p - a;
@@ -28,28 +30,28 @@ const fragShdrText = `
 
     void main() {
         float bin = floor(texcoord.x*float(BIN_SIZE)) + .5;
-        vec2 binMax = texture2D(sampleTex, vec2(bin*INV_BIN, currRow)).ra;
+        vec2 binMax = texture(sampleTex, vec2(bin*INV_BIN, currRow)).ra;
         float binm1 = floor(max(bin-1., 0.)) + .5;
         float binp1 = floor(min(bin+1., float(BIN_SIZE-1))) + .5;
         float off = INV_BIN*float(int(bin));
         float off2 = off+INV_BIN;
-        vec2 A = vec2(off, texture2D(sampleTex, vec2(binm1*INV_BIN, currRow)).a);
+        vec2 A = vec2(off, texture(sampleTex, vec2(binm1*INV_BIN, currRow)).a);
         vec2 B = vec2(off, binMax[1]);
         vec2 C = vec2(off2, binMax[1]);
-        vec2 D = vec2(off2, texture2D(sampleTex, vec2(binp1*INV_BIN, currRow)).a);        
+        vec2 D = vec2(off2, texture(sampleTex, vec2(binp1*INV_BIN, currRow)).a);        
         
         float emit = step(texcoord.y, binMax[0]);
-        gl_FragColor = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/binMax[0]), 1.);
+        fragColour = vec4(emit * mix(vec3(1., 0., 0.), vec3(1., 1., 0), texcoord.y/binMax[0]), 1.);
         vec4 col = vec4(binMax[1], 0., 1. - binMax[1], 1.);
-        gl_FragColor = mix(col, gl_FragColor, seg(texcoord, A, B));
-        gl_FragColor = mix(col, gl_FragColor, seg(texcoord, B, C));
-        gl_FragColor = mix(col, gl_FragColor, seg(texcoord, C, D));
+        fragColour = mix(col, fragColour, seg(texcoord, A, B));
+        fragColour = mix(col, fragColour, seg(texcoord, B, C));
+        fragColour = mix(col, fragColour, seg(texcoord, C, D));
     }
 `;
 
 export default class Histogram implements Module {
     rndr: Renderer;
-    gl: WebGLRenderingContext | null = null;
+    gl: WebGL2RenderingContext | null = null;
     ctx: ModuleContext | null = null;
     shdrProg: WebGLProgram | null = null;
     readonly name = "Histogram";
@@ -58,7 +60,9 @@ export default class Histogram implements Module {
     private sampleTexLoc: WebGLUniformLocation | null = null;
     private currRowLoc: WebGLUniformLocation | null = null;
 
-    public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext | null {
+    public initialise(rndr: Renderer, vtxShdr: WebGLShader, vbuf: WebGLBuffer): ModuleContext | null {
+        (vbuf);
+
         this.rndr = rndr;
         const gl = rndr.getContext();
         this.gl = gl;

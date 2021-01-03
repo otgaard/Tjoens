@@ -1,3 +1,9 @@
+const EPSILON = .000001
+
+export function eq(A: number, B: number, epsilon: number=EPSILON): boolean {
+    return Math.abs(A - B) < epsilon;
+}
+
 export function clamp<T>(val: T, min: T, max: T): T {
     return val < min ? min : val > max ? max : val;
 }

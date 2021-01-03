@@ -7,9 +7,7 @@ import { Program } from "../webGL/GL";
 import { vec2f as vec2 } from "../maths/Vec2";
 import {Renderer} from "../webGL/Renderer";
 
-const fragShdrText = `
-    #extension GL_OES_standard_derivatives : enable
-
+const fragShdrText = `#version 300 es
     precision highp float;    
 
     uniform vec2 screenDims;
@@ -59,7 +57,7 @@ const fragShdrText = `
 
 export default class Raymarch implements Module {
     rndr: Renderer;
-    gl: WebGLRenderingContext | null = null;
+    gl: WebGL2RenderingContext | null = null;
     shdrProg: WebGLProgram | null = null;
     ctx: ModuleContext | null = null;
     readonly name = "Raymarch";
@@ -68,7 +66,8 @@ export default class Raymarch implements Module {
     screenDimsLoc: WebGLUniformLocation | null = -1;
     posRotLoc: WebGLUniformLocation | null = -1;
 
-    public initialise(rndr: Renderer, vtxShdr: WebGLShader): ModuleContext {
+    public initialise(rndr: Renderer, vtxShdr: WebGLShader, vbuf: WebGLBuffer): ModuleContext {
+        (vbuf);
         this.rndr = rndr;
         const gl = rndr.getContext();
         this.gl = gl;

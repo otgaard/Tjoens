@@ -36,7 +36,7 @@ export const isSafari = window.safari !== undefined;
 
 export default function Player() {
     const [gain, setGain] = useState(.5);
-    const [module, setModule] = useState("particles");
+    const [module, setModule] = useState("histogram");
 
     const audioElement = useSelector((state: AppState) => state.audioElement);
     const playState = useSelector<AppState, PlayState>(state => state.playState);

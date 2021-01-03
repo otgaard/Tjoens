@@ -2,6 +2,7 @@ import {Renderer} from "./Renderer";
 import {Renderbuffer} from "./Renderbuffer";
 import {Texture} from "./Texture";
 import {isSet} from "../maths/functions";
+import {checkErr} from "./GL";
 
 export type RenderTarget = Renderbuffer | Texture;
 
@@ -26,7 +27,7 @@ export interface FramebufferConfig {
 
 export class Framebuffer {
     readonly rndr: Renderer;
-    private gl: WebGLRenderingContext;
+    private gl: WebGL2RenderingContext;
 
     private resource: WebGLFramebuffer;
     private conf: {
@@ -40,10 +41,6 @@ export class Framebuffer {
     }
     private colourTargets: RenderTarget[];
     private depthTarget: RenderTarget;
-
-    private drawBufExt: WEBGL_draw_buffers;
-    private colourExt: WEBGL_color_buffer_float;
-    private depthExt: WEBGL_depth_texture;
 
     private targets: TargetOutput;
     private drawBuffers: GLenum[];
@@ -102,11 +99,12 @@ export class Framebuffer {
 
     public bind() {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.resource);
-        if(this.drawBuffers) this.drawBufExt.drawBuffersWEBGL(this.drawBuffers);
+        this.gl.drawBuffers(this.drawBuffers);
     }
 
     public release() {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        //this.gl.drawBuffers([this.gl.BACK]);
     }
 
     public getColourTarget(index: number=0): RenderTarget {
@@ -125,27 +123,6 @@ export class Framebuffer {
     public initialise(colourTargets?: RenderTarget[], depthTarget?: RenderTarget, realloc: boolean=false): boolean {
         this.gl = this.rndr.getContext();
 
-        if(!this.resource) {
-            this.depthExt = this.rndr.getExtension("WEBGL_depth_texture");
-            this.colourExt = this.rndr.getExtension("WEBGL_color_buffer_float");
-            this.drawBufExt = this.rndr.getExtension("WEBGL_draw_buffers");
-
-            if(!this.drawBufExt && (colourTargets && colourTargets.length > 1 || this.conf.count > 1)) {
-                console.error("Framebuffer requested draw buffers but extension not available");
-                return false;
-            }
-
-            if(!this.depthExt && this.conf.depthFormat != null) {
-                console.error("Depth Texture Extension not supported");
-                return false;
-            }
-
-            if(!this.colourExt && this.conf.colourDatatype === this.gl.FLOAT) {
-                console.error("Floating point render targets not supported");
-                return false;
-            }
-        }
-
         if(this.resource && realloc) {
             this.gl.deleteFramebuffer(this.resource);
             this.resource = null;
@@ -157,7 +134,7 @@ export class Framebuffer {
 
         if(colourTargets) {
             for(let i = 0; i !== colourTargets.length; ++i) {
-                const att = this.drawBufExt ? this.drawBufExt.COLOR_ATTACHMENT0_WEBGL + i : this.gl.COLOR_ATTACHMENT0 + i;
+                const att = this.gl.COLOR_ATTACHMENT0 + i;
                 const res = colourTargets[i].getResource();
 
                 if(colourTargets[i] instanceof Texture) {
@@ -169,29 +146,44 @@ export class Framebuffer {
                 this.colourTargets.push(colourTargets[i]);
             }
 
-            if(colourTargets.length > 1 && this.drawBufExt) {
-                this.drawBuffers = [];
-                for(let i = 0; i !== colourTargets.length; ++i) {
-                    this.drawBuffers.push(this.drawBufExt.DRAW_BUFFER0_WEBGL+i);
-                }
+            this.drawBuffers = [];
+            for(let i = 0; i !== colourTargets.length; ++i) {
+                this.drawBuffers.push(this.gl.COLOR_ATTACHMENT0+i);
             }
         } else {
-            // We set up a single colour buffer render target
             console.log("Initialising Colour Target");
-            const att = this.drawBufExt ? this.drawBufExt.COLOR_ATTACHMENT0_WEBGL : this.gl.COLOR_ATTACHMENT0;
+            const att = this.gl.COLOR_ATTACHMENT0;
+
+            this.drawBuffers = [];
+            for(let i = 0; i !== this.conf.count; ++i) {
+                this.drawBuffers.push(this.gl.COLOR_ATTACHMENT0+i);
+            }
 
             if(isSet(this.targets, TargetOutput.COLOUR_TEXTURE)) {
-                console.log("TEXTURE");
-                const tex = new Texture(this.rndr, this.conf.width, this.conf.height, this.conf.colourFormat, this.gl.UNSIGNED_BYTE);
-                if (!tex.initialise()) return false;
-                this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, att, this.gl.TEXTURE_2D, tex.getResource(), 0);
-                this.colourTargets.push(tex);
+                // Quick little hack to provide correct internal format for floating point textures
+                let internalFormat: GLenum;
+                if(this.conf.colourDatatype === WebGLRenderingContext.FLOAT && this.conf.colourFormat === WebGLRenderingContext.RGBA) {
+                    internalFormat = this.gl.RGBA32F;
+                } else {
+                    internalFormat = this.conf.colourFormat;
+                }
+
+                for(let i = 0; i !== this.conf.count; ++i) {
+                    console.log("TEXTURE");
+                    const tex = new Texture(this.rndr, this.conf.width, this.conf.height, this.conf.colourFormat, this.conf.colourDatatype, internalFormat);
+                    if (!tex.initialise()) return false;
+                    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, att+i, this.gl.TEXTURE_2D, tex.getResource(), 0);
+                    this.colourTargets.push(tex);
+                    checkErr(this.gl);
+                }
             } else if(isSet(this.targets, TargetOutput.COLOUR_RENDERBUFFER)) {
-                console.log("RENDERBUFFER");
-                const buf = new Renderbuffer(this.rndr, this.conf.width, this.conf.height, this.conf.colourFormat);
-                if(!buf.initialise()) return false;
-                this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, att, this.gl.RENDERBUFFER, buf.getResource());
-                this.colourTargets.push(buf);
+                for(let i = 0; i !== this.conf.count; ++i) {
+                    console.log("RENDERBUFFER");
+                    const buf = new Renderbuffer(this.rndr, this.conf.width, this.conf.height, this.conf.colourFormat);
+                    if(!buf.initialise()) return false;
+                    this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, att+i, this.gl.RENDERBUFFER, buf.getResource());
+                    this.colourTargets.push(buf);
+                }
             } else {
                 this.colourTargets = null;
             }
@@ -210,7 +202,7 @@ export class Framebuffer {
 
             let dataType: GLenum;
             if(this.conf.depthFormat === this.gl.DEPTH_STENCIL) {
-                dataType = this.depthExt.UNSIGNED_INT_24_8_WEBGL;
+                dataType = this.gl.UNSIGNED_INT_24_8;
             } else if(this.conf.depthFormat === this.gl.DEPTH_COMPONENT) {
                 dataType = this.gl.UNSIGNED_INT;
             } else if(this.conf.depthFormat === this.gl.DEPTH_COMPONENT16) {

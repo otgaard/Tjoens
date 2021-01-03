@@ -14,7 +14,7 @@ enum DIMS {
 
 export class RingTexture {
     //@ts-ignore
-    private gl: WebGLRenderingContext;
+    private gl: WebGL2RenderingContext;
     private dims = new Uint16Array(3);      // [ width, height, channels ]
     private rowStride: number = 0;
     private tex: WebGLTexture | null = null;
@@ -38,7 +38,7 @@ export class RingTexture {
         }
     }
 
-    public initialise(gl: WebGLRenderingContext): boolean {
+    public initialise(gl: WebGL2RenderingContext): boolean {
         this.gl = gl;
 
         this.tex = gl.createTexture();

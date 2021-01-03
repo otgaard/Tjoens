@@ -22,12 +22,12 @@ const quadPositions = [
     +1., -1.,
 ];
 
-const vtxShdr = `
+const vtxShdr = `#version 300 es
     precision highp float;
     
-    attribute vec2 position;
+    in vec2 position;
     
-    varying vec2 texcoord;
+    out vec2 texcoord;
     
     void main() {
         texcoord = .5*(position + vec2(1., 1.));
@@ -44,7 +44,7 @@ const ModuleIndex = {
 export default class Visualiser {
     private el: HTMLCanvasElement;
     private rndr: Renderer;
-    private gl: WebGLRenderingContext;
+    private gl: WebGL2RenderingContext;
     private viewport: Int32Array = new Int32Array(4);
     readonly DPR: number;
 
@@ -87,8 +87,6 @@ export default class Visualiser {
 
     public initialise(): boolean {
         const gl = this.gl;
-
-        gl.getExtension("OES_standard_derivatives");
 
         this.el.addEventListener("mousemove", this.onMouseMove);
         this.el.addEventListener("mousedown", this.onMouseDown);
@@ -157,7 +155,7 @@ export default class Visualiser {
             // Do this whenever we change the module for screen-space shaders
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbuf);
 
-            const ctx = mod.initialise(this.rndr, this.vShdr);
+            const ctx = mod.initialise(this.rndr, this.vShdr, this.vbuf);
             if(mod && ctx) {
                 this.module = mod;
                 this.ctx = ctx;

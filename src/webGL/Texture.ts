@@ -8,35 +8,38 @@ const MAG_FILTER = 1;
 
 export class Texture {
     readonly rndr: Renderer;
-    private gl: WebGLRenderingContext;
+    private gl: WebGL2RenderingContext;
 
     private resource: WebGLTexture;
     private width: number;
     private height: number;
     private format: GLenum;
     private dataType: GLenum;
+    private internalFormat: GLenum;
     private mipmap: boolean = false;
     private wrapMode: [GLenum, GLenum] = [
-        WebGLRenderingContext.CLAMP_TO_EDGE,
-        WebGLRenderingContext.CLAMP_TO_EDGE
+        WebGL2RenderingContext.CLAMP_TO_EDGE,
+        WebGL2RenderingContext.CLAMP_TO_EDGE
     ];
     private filter: [GLenum, GLenum] = [
-        WebGLRenderingContext.NEAREST,
-        WebGLRenderingContext.NEAREST
+        WebGL2RenderingContext.NEAREST,
+        WebGL2RenderingContext.NEAREST
     ];
 
     public constructor(
         rndr: Renderer,
         width: number,
         height: number,
-        format: GLenum=WebGLRenderingContext.RGBA,
-        dataType: GLenum=WebGLRenderingContext.UNSIGNED_BYTE
+        format: GLenum=WebGL2RenderingContext.RGBA,
+        dataType: GLenum=WebGL2RenderingContext.UNSIGNED_BYTE,
+        internalFormat?: GLenum
     ) {
         this.rndr = rndr;
         this.width = width;
         this.height = height;
         this.format = format;
         this.dataType = dataType;
+        this.internalFormat = internalFormat || format;
     }
 
     public getResource(): WebGLTexture {
@@ -86,23 +89,6 @@ export class Texture {
     public initialise(data: ArrayBufferView=null, realloc: boolean=false): boolean {
         this.gl = this.rndr.getContext();
 
-        if(!this.resource) {
-            const depthExt = this.rndr.getExtension("WEBGL_depth_texture");
-            const colorExt = this.rndr.getExtension("WEBGL_color_buffer_float");
-            const hasFloatTex = this.rndr.getExtension("OES_texture_float");
-
-            if(!depthExt && (this.format === this.gl.DEPTH_COMPONENT16 || this.format === this.gl.DEPTH_COMPONENT ||
-                this.format === this.gl.DEPTH_STENCIL)) {
-                console.error("WEBGL_depth_texture extension not available");
-                return false;
-            }
-
-            if(colorExt && (this.format === colorExt.RGBA32F_EXT || this.format === colorExt.RGB32F_EXT) && !hasFloatTex) {
-                console.error("WEBGL_color_buffer_float or OES_texture_float extensions not available");
-                return false;
-            }
-        }
-
         if(this.resource && realloc) {
             this.gl.deleteTexture(this.resource);
             this.resource = null;
@@ -110,7 +96,7 @@ export class Texture {
 
         if(!this.resource) this.resource = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.resource);
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.format, this.width, this.height, 0, this.format, this.dataType, data);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.internalFormat, this.width, this.height, 0, this.format, this.dataType, data);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.wrapMode[COORD_S]);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.wrapMode[COORD_T]);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.filter[MIN_FILTER]);

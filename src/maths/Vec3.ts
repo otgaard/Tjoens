@@ -89,6 +89,13 @@ export class vec3f extends Float32Array {
         return Math.sqrt(vec3f.dot(u,u));
     }
 
+    public static normalise(v: vec3f | ArrayLike<number>): vec3f {
+        const len = vec3f.len(v);
+        const ret = vec3f.create();
+        vec3f.divScalar(ret, v, len);
+        return ret;
+    }
+
     public x(): number {
         return (this)[0];
     }

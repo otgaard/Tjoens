@@ -88,7 +88,7 @@ export enum ModuleValue {
 export interface Module {
     name: string;
 
-    initialise: (rndr: Renderer, vtxShdr: WebGLShader) => ModuleContext | null;
+    initialise: (rndr: Renderer, vtxShdr: WebGLShader, vbuf: WebGLBuffer) => ModuleContext | null;
     destroy: () => void;
 
     updateContext: (value: ModuleValue) => void;
